@@ -2,17 +2,18 @@
   "name": "video-processor",
   "version": "1.0.0",
   "description": "Online Video Processor",
+  "main": "src/main.jsx",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "start": "vite preview"
+    "preview": "vite preview"
   },
   "dependencies": {
     "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "@ffmpeg/ffmpeg": "^0.11.6"
+    "react-dom": "^18.2.0"
   },
   "devDependencies": {
-    "vite": "^4.3.2"
+    "vite": "^4.3.9",
+    "@vitejs/plugin-react": "^4.0.0"
   }
 }
