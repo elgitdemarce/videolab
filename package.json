@@ -3,15 +3,16 @@
   "version": "1.0.0",
   "description": "Online Video Processor",
   "main": "src/main.jsx",
-  "scripts": {    
-    "build": "chmod +x ./node_modules/.bin/vite && vite build"    
+  "scripts": {
+    "build": "chmod +x ./node_modules/.bin/vite && vite build"
   },
   "dependencies": {
+    "@ffmpeg/ffmpeg": "^0.12.15",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
-    "vite": "^4.5.14",
-    "@vitejs/plugin-react": "^4.0.0"
+    "@vitejs/plugin-react": "^4.0.0",
+    "vite": "^4.5.14"
   }
 }
