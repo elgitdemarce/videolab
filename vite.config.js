@@ -5,7 +5,13 @@ export default defineConfig({
   plugins: [react()],
   build: {
     rollupOptions: {
-      input: "/index.html"
+      input: "index.html",
+      external: []
+    },
+  },
+  resolve: {
+    alias: {
+      '@': '/src'
     }
   }
 });
