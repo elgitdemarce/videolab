@@ -2,7 +2,7 @@
   "version": 2,
   "builds": [
     {
-      "src": "src/**/*",
+      "src": "package.json",
       "use": "@vercel/static-build",
       "config": {
         "distDir": "dist"
@@ -12,11 +12,7 @@
   "routes": [
     {
       "src": "/(.*)",
-      "headers": {
-        "Cross-Origin-Embedder-Policy": "require-corp",
-        "Cross-Origin-Opener-Policy": "same-origin"
-      },
-      "dest": "/index.html"
+      "dest": "/$1"
     }
   ]
 }
