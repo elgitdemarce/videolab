@@ -3,10 +3,8 @@
   "version": "1.0.0",
   "description": "Online Video Processor",
   "main": "src/main.jsx",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+  "scripts": {    
+    "build": "chmod +x ./node_modules/.bin/vite && vite build"    
   },
   "dependencies": {
     "react": "^18.2.0",
