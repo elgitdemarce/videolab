@@ -14,5 +14,8 @@
       "src": "/(.*)",
       "dest": "/index.html"
     }
-  ]
+  ],
+  "buildCommand": "npm run vercel-build",
+  "installCommand": "npm ci && chmod -R 755 node_modules/.bin",
+  "devCommand": "vite"
 }
