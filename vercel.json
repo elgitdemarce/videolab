@@ -19,7 +19,7 @@
   "env": {
     "NPM_CONFIG_PRODUCTION": "false"
   },
-  "buildCommand": "chmod +x node_modules/.bin/vite && npx vite build",
-  "installCommand": "npm install && chmod -R 755 node_modules/.bin",
+  "buildCommand": "npm run vercel-build",
+  "installCommand": "npm ci && chmod -R 755 node_modules/.bin",
   "devCommand": "npx vite"
 }
