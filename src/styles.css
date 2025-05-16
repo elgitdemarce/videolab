@@ -1,22 +1,19 @@
-/* src/styles.css */
-.app {
+body {
   font-family: Arial, sans-serif;
-  text-align: center;
+  max-width: 600px;
+  margin: 0 auto;
   padding: 20px;
+  line-height: 1.6;
 }
 
-.progress-bar {
-  width: 100%;
-  height: 20px;
-  background-color: #ddd;
-  margin-top: 10px;
-  position: relative;
-  border-radius: 10px;
-  overflow: hidden;
+h1 {
+  text-align: center;
+  color: #333;
 }
 
-.progress-fill {
-  height: 100%;
-  background-color: #4caf50;
-  transition: width 0.3s;
+.app {
+  background-color: #f4f4f4;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
