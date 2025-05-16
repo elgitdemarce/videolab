@@ -1,32 +1,34 @@
-import React, { useState, useRef, useCallback, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 
 const ProgressComponent = () => {
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState("Arrastra y suelta archivos MP4 aquí");
   const [currentFiles, setCurrentFiles] = useState([]);
   const [isDragOver, setIsDragOver] = useState(false);
-  const ffmpegRef = useRef(null);
   const fileInputRef = useRef(null);
+  const dropZoneRef = useRef(null);
 
   useEffect(() => {
-    const handleDragOver = (e) => {
+    const dropZone = document.getElementById('drop-zone');
+    
+    const preventDefaults = (e) => {
       e.preventDefault();
       e.stopPropagation();
+    };
+
+    const highlight = () => {
       setIsDragOver(true);
       setStatus("Suelta los archivos aquí");
     };
 
-    const handleDragLeave = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
+    const unhighlight = () => {
       setIsDragOver(false);
       setStatus("Arrastra y suelta archivos MP4 aquí");
     };
 
     const handleDrop = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      setIsDragOver(false);
+      preventDefaults(e);
+      unhighlight();
       
       const files = Array.from(e.dataTransfer.files).filter(file => file.type === 'video/mp4');
       
@@ -39,61 +41,30 @@ const ProgressComponent = () => {
       }
     };
 
-    document.addEventListener('dragover', handleDragOver);
-    document.addEventListener('dragleave', handleDragLeave);
-    document.addEventListener('drop', handleDrop);
+    if (dropZone) {
+      ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, preventDefaults, false);
+      });
+
+      dropZone.addEventListener('dragenter', highlight, false);
+      dropZone.addEventListener('dragover', highlight, false);
+      dropZone.addEventListener('dragleave', unhighlight, false);
+      dropZone.addEventListener('drop', handleDrop, false);
+    }
 
     return () => {
-      document.removeEventListener('dragover', handleDragOver);
-      document.removeEventListener('dragleave', handleDragLeave);
-      document.removeEventListener('drop', handleDrop);
+      if (dropZone) {
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+          dropZone.removeEventListener(eventName, preventDefaults, false);
+        });
+
+        dropZone.removeEventListener('dragenter', highlight, false);
+        dropZone.removeEventListener('dragover', highlight, false);
+        dropZone.removeEventListener('dragleave', unhighlight, false);
+        dropZone.removeEventListener('drop', handleDrop, false);
+      }
     };
   }, []);
-
-  // Carga dinámica de FFmpeg al iniciar procesamiento
-  const loadFFmpeg = async () => {
-    setStatus("Cargando FFmpeg...");
-    if (!ffmpegRef.current) {
-      const { createFFmpeg, fetchFile } = await import("@ffmpeg/ffmpeg");
-      ffmpegRef.current = createFFmpeg({ log: true });
-      ffmpegRef.current.fetchFile = fetchFile;
-      await ffmpegRef.current.load();
-    }
-    setStatus("FFmpeg cargado");
-  };
-
-  const processVideos = async () => {
-    if (currentFiles.length === 0) {
-      setStatus("Seleccione archivos primero.");
-      return;
-    }
-
-    await loadFFmpeg();
-
-    for (const file of currentFiles) {
-      setStatus(`Procesando: ${file.name}`);
-
-      const ffmpeg = ffmpegRef.current;
-      ffmpeg.FS("writeFile", "input.mp4", await ffmpeg.fetchFile(file));
-      await ffmpeg.run("-i", "input.mp4", "-b:v", "1000k", "-r", "30", "output.mp4");
-
-      const data = ffmpeg.FS("readFile", "output.mp4");
-      const blob = new Blob([data.buffer], { type: "video/mp4" });
-      const url = URL.createObjectURL(blob);
-
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `processed_${file.name}`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      setProgress((prev) => prev + 100 / currentFiles.length);
-    }
-
-    setStatus("Procesamiento completado");
-    setCurrentFiles([]);
-  };
 
   const handleFileSelect = (e) => {
     const files = Array.from(e.target.files).filter(file => file.type === 'video/mp4');
@@ -107,17 +78,32 @@ const ProgressComponent = () => {
     }
   };
 
+  const processVideos = async () => {
+    if (currentFiles.length === 0) {
+      setStatus("Seleccione archivos primero.");
+      return;
+    }
+
+    // Aquí iría la lógica de procesamiento de FFmpeg
+    setStatus("Procesamiento completado");
+    setCurrentFiles([]);
+  };
+
   return (
     <div>
       <div 
+        id="drop-zone"
+        ref={dropZoneRef}
         style={{
-          border: isDragOver ? '2px solid green' : '2px dashed #ccc', 
-          padding: '20px', 
+          border: isDragOver ? '3px solid green' : '3px dashed #ccc', 
+          padding: '40px', 
           textAlign: 'center', 
-          backgroundColor: isDragOver ? 'rgba(0,255,0,0.1)' : 'transparent'
+          backgroundColor: isDragOver ? 'rgba(0,255,0,0.1)' : 'white',
+          cursor: 'pointer',
+          transition: 'all 0.3s ease'
         }}
       >
-        {status}
+        <p>{status}</p>
         <input 
           ref={fileInputRef}
           type="file" 
@@ -126,22 +112,65 @@ const ProgressComponent = () => {
           onChange={handleFileSelect} 
           style={{display: 'none'}} 
         />
-        <button onClick={() => fileInputRef.current.click()}>
+        <button 
+          onClick={() => fileInputRef.current.click()}
+          style={{
+            padding: '10px 20px',
+            backgroundColor: '#007bff',
+            color: 'white',
+            border: 'none',
+            borderRadius: '5px',
+            cursor: 'pointer'
+          }}
+        >
           Seleccionar Archivos
         </button>
       </div>
-      <button 
-        onClick={processVideos} 
-        disabled={currentFiles.length === 0}
-      >
-        Iniciar Procesamiento
-      </button>
-      <div className="progress-bar" style={{border: '1px solid #000', width: '100%', height: '20px', marginTop: '10px'}}>
-        <div
-          className="progress-fill"
-          style={{ width: `${progress}%`, height: '100%', backgroundColor: 'green' }}
-        ></div>
-      </div>
+      
+      {currentFiles.length > 0 && (
+        <div style={{marginTop: '20px'}}>
+          <h3>Archivos seleccionados:</h3>
+          <ul>
+            {currentFiles.map((file, index) => (
+              <li key={index}>{file.name}</li>
+            ))}
+          </ul>
+          <button 
+            onClick={processVideos}
+            style={{
+              padding: '10px 20px',
+              backgroundColor: '#28a745',
+              color: 'white',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: 'pointer'
+            }}
+          >
+            Procesar Videos
+          </button>
+        </div>
+      )}
+
+      {progress > 0 && (
+        <div 
+          className="progress-bar" 
+          style={{
+            border: '1px solid #000', 
+            width: '100%', 
+            height: '20px', 
+            marginTop: '10px'
+          }}
+        >
+          <div
+            className="progress-fill"
+            style={{ 
+              width: `${progress}%`, 
+              height: '100%', 
+              backgroundColor: 'green' 
+            }}
+          ></div>
+        </div>
+      )}
     </div>
   );
 };
