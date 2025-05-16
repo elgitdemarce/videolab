@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 
 const ProgressComponent = () => {
   const [progress, setProgress] = useState(0);
@@ -6,56 +6,48 @@ const ProgressComponent = () => {
   const [currentFiles, setCurrentFiles] = useState([]);
   const [isDragOver, setIsDragOver] = useState(false);
   const ffmpegRef = useRef(null);
-  const dropZoneRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  const preventDefaults = useCallback((e) => {
-    e.preventDefault();
-    e.stopPropagation();
-  }, []);
+  useEffect(() => {
+    const handleDragOver = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragOver(true);
+      setStatus("Suelta los archivos aquí");
+    };
 
-  const handleDragEnter = useCallback((e) => {
-    preventDefaults(e);
-    setIsDragOver(true);
-    setStatus("Suelta los archivos aquí");
-  }, [preventDefaults]);
+    const handleDragLeave = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragOver(false);
+      setStatus("Arrastra y suelta archivos MP4 aquí");
+    };
 
-  const handleDragLeave = useCallback((e) => {
-    preventDefaults(e);
-    setIsDragOver(false);
-    setStatus("Arrastra y suelta archivos MP4 aquí");
-  }, [preventDefaults]);
+    const handleDrop = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragOver(false);
+      
+      const files = Array.from(e.dataTransfer.files).filter(file => file.type === 'video/mp4');
+      
+      if (files.length > 0) {
+        setCurrentFiles(files);
+        setStatus(`${files.length} archivo(s) MP4 listo(s) para procesar.`);
+        setProgress(0);
+      } else {
+        setStatus("Solo se permiten archivos MP4");
+      }
+    };
 
-  const handleDragOver = useCallback((e) => {
-    preventDefaults(e);
-    setIsDragOver(true);
-  }, [preventDefaults]);
+    document.addEventListener('dragover', handleDragOver);
+    document.addEventListener('dragleave', handleDragLeave);
+    document.addEventListener('drop', handleDrop);
 
-  const handleDrop = useCallback((e) => {
-    preventDefaults(e);
-    setIsDragOver(false);
-    
-    const files = Array.from(e.dataTransfer.files).filter(file => file.type === 'video/mp4');
-    
-    if (files.length > 0) {
-      setCurrentFiles(files);
-      setStatus(`${files.length} archivo(s) MP4 listo(s) para procesar.`);
-      setProgress(0);
-    } else {
-      setStatus("Solo se permiten archivos MP4");
-    }
-  }, [preventDefaults]);
-
-  const handleFileSelect = useCallback((e) => {
-    const files = Array.from(e.target.files).filter(file => file.type === 'video/mp4');
-    
-    if (files.length > 0) {
-      setCurrentFiles(files);
-      setStatus(`${files.length} archivo(s) MP4 listo(s) para procesar.`);
-      setProgress(0);
-    } else {
-      setStatus("Solo se permiten archivos MP4");
-    }
+    return () => {
+      document.removeEventListener('dragover', handleDragOver);
+      document.removeEventListener('dragleave', handleDragLeave);
+      document.removeEventListener('drop', handleDrop);
+    };
   }, []);
 
   // Carga dinámica de FFmpeg al iniciar procesamiento
@@ -103,14 +95,21 @@ const ProgressComponent = () => {
     setCurrentFiles([]);
   };
 
+  const handleFileSelect = (e) => {
+    const files = Array.from(e.target.files).filter(file => file.type === 'video/mp4');
+    
+    if (files.length > 0) {
+      setCurrentFiles(files);
+      setStatus(`${files.length} archivo(s) MP4 listo(s) para procesar.`);
+      setProgress(0);
+    } else {
+      setStatus("Solo se permiten archivos MP4");
+    }
+  };
+
   return (
     <div>
       <div 
-        ref={dropZoneRef}
-        onDragEnter={handleDragEnter}
-        onDragLeave={handleDragLeave}
-        onDragOver={handleDragOver}
-        onDrop={handleDrop}
         style={{
           border: isDragOver ? '2px solid green' : '2px dashed #ccc', 
           padding: '20px', 
