@@ -20,6 +20,6 @@
     "NPM_CONFIG_PRODUCTION": "false"
   },
   "buildCommand": "npm run vercel-build",
-  "installCommand": "npm ci && chmod -R 755 node_modules/.bin",
+  "installCommand": "npm ci && mkdir -p node_modules/.bin && chmod -R 755 node_modules/.bin",
   "devCommand": "npx vite"
 }
