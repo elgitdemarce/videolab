@@ -3,23 +3,16 @@
   "builds": [
     {
       "src": "package.json",
-      "use": "@vercel/node",
+      "use": "@vercel/static",
       "config": {
-        "maxLambdaSize": "50mb",
-        "runtime": "nodejs18.x"
+        "distDir": "dist"
       }
     }
   ],
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "/"
+      "dest": "/index.html"
     }
-  ],
-  "env": {
-    "NPM_CONFIG_PRODUCTION": "false"
-  },
-  "buildCommand": "npm run vercel-build",
-  "installCommand": "npm ci && mkdir -p node_modules/.bin && chmod -R 755 node_modules/.bin",
-  "devCommand": "npx vite"
+  ]
 }
