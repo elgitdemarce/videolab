@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef } from "react";
 
 const ProgressComponent = () => {
   const [progress, setProgress] = useState(0);
@@ -6,65 +6,41 @@ const ProgressComponent = () => {
   const [currentFiles, setCurrentFiles] = useState([]);
   const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef(null);
-  const dropZoneRef = useRef(null);
 
-  useEffect(() => {
-    const dropZone = document.getElementById('drop-zone');
+  const handleDragEnter = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+    setStatus("Suelta los archivos aquí");
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+    setStatus("Arrastra y suelta archivos MP4 aquí");
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
     
-    const preventDefaults = (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-    };
-
-    const highlight = () => {
-      setIsDragOver(true);
-      setStatus("Suelta los archivos aquí");
-    };
-
-    const unhighlight = () => {
-      setIsDragOver(false);
-      setStatus("Arrastra y suelta archivos MP4 aquí");
-    };
-
-    const handleDrop = (e) => {
-      preventDefaults(e);
-      unhighlight();
-      
-      const files = Array.from(e.dataTransfer.files).filter(file => file.type === 'video/mp4');
-      
-      if (files.length > 0) {
-        setCurrentFiles(files);
-        setStatus(`${files.length} archivo(s) MP4 listo(s) para procesar.`);
-        setProgress(0);
-      } else {
-        setStatus("Solo se permiten archivos MP4");
-      }
-    };
-
-    if (dropZone) {
-      ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-        dropZone.addEventListener(eventName, preventDefaults, false);
-      });
-
-      dropZone.addEventListener('dragenter', highlight, false);
-      dropZone.addEventListener('dragover', highlight, false);
-      dropZone.addEventListener('dragleave', unhighlight, false);
-      dropZone.addEventListener('drop', handleDrop, false);
+    const files = Array.from(e.dataTransfer.files).filter(file => file.type === 'video/mp4');
+    
+    if (files.length > 0) {
+      setCurrentFiles(files);
+      setStatus(`${files.length} archivo(s) MP4 listo(s) para procesar.`);
+      setProgress(0);
+    } else {
+      setStatus("Solo se permiten archivos MP4");
     }
-
-    return () => {
-      if (dropZone) {
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-          dropZone.removeEventListener(eventName, preventDefaults, false);
-        });
-
-        dropZone.removeEventListener('dragenter', highlight, false);
-        dropZone.removeEventListener('dragover', highlight, false);
-        dropZone.removeEventListener('dragleave', unhighlight, false);
-        dropZone.removeEventListener('drop', handleDrop, false);
-      }
-    };
-  }, []);
+  };
 
   const handleFileSelect = (e) => {
     const files = Array.from(e.target.files).filter(file => file.type === 'video/mp4');
@@ -92,8 +68,10 @@ const ProgressComponent = () => {
   return (
     <div>
       <div 
-        id="drop-zone"
-        ref={dropZoneRef}
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
         style={{
           border: isDragOver ? '3px solid green' : '3px dashed #ccc', 
           padding: '40px', 
