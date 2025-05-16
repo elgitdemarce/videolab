@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useCallback } from "react";
 
 const ProgressComponent = () => {
   const [progress, setProgress] = useState(0);
@@ -6,25 +6,33 @@ const ProgressComponent = () => {
   const [currentFiles, setCurrentFiles] = useState([]);
   const [isDragOver, setIsDragOver] = useState(false);
   const ffmpegRef = useRef(null);
+  const dropZoneRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  const handleDragOver = (e) => {
+  const preventDefaults = useCallback((e) => {
     e.preventDefault();
     e.stopPropagation();
+  }, []);
+
+  const handleDragEnter = useCallback((e) => {
+    preventDefaults(e);
     setIsDragOver(true);
     setStatus("Suelta los archivos aquí");
-  };
+  }, [preventDefaults]);
 
-  const handleDragLeave = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleDragLeave = useCallback((e) => {
+    preventDefaults(e);
     setIsDragOver(false);
     setStatus("Arrastra y suelta archivos MP4 aquí");
-  };
+  }, [preventDefaults]);
 
-  const handleDrop = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const handleDragOver = useCallback((e) => {
+    preventDefaults(e);
+    setIsDragOver(true);
+  }, [preventDefaults]);
+
+  const handleDrop = useCallback((e) => {
+    preventDefaults(e);
     setIsDragOver(false);
     
     const files = Array.from(e.dataTransfer.files).filter(file => file.type === 'video/mp4');
@@ -36,9 +44,9 @@ const ProgressComponent = () => {
     } else {
       setStatus("Solo se permiten archivos MP4");
     }
-  };
+  }, [preventDefaults]);
 
-  const handleFileSelect = (e) => {
+  const handleFileSelect = useCallback((e) => {
     const files = Array.from(e.target.files).filter(file => file.type === 'video/mp4');
     
     if (files.length > 0) {
@@ -48,7 +56,7 @@ const ProgressComponent = () => {
     } else {
       setStatus("Solo se permiten archivos MP4");
     }
-  };
+  }, []);
 
   // Carga dinámica de FFmpeg al iniciar procesamiento
   const loadFFmpeg = async () => {
@@ -98,7 +106,11 @@ const ProgressComponent = () => {
   return (
     <div>
       <div 
-        ref={dropZoneRef} 
+        ref={dropZoneRef}
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
         style={{
           border: isDragOver ? '2px solid green' : '2px dashed #ccc', 
           padding: '20px', 
@@ -108,14 +120,23 @@ const ProgressComponent = () => {
       >
         {status}
         <input 
+          ref={fileInputRef}
           type="file" 
           multiple 
           accept=".mp4" 
           onChange={handleFileSelect} 
           style={{display: 'none'}} 
         />
+        <button onClick={() => fileInputRef.current.click()}>
+          Seleccionar Archivos
+        </button>
       </div>
-      <button onClick={processVideos}>Iniciar Procesamiento</button>
+      <button 
+        onClick={processVideos} 
+        disabled={currentFiles.length === 0}
+      >
+        Iniciar Procesamiento
+      </button>
       <div className="progress-bar" style={{border: '1px solid #000', width: '100%', height: '20px', marginTop: '10px'}}>
         <div
           className="progress-fill"
