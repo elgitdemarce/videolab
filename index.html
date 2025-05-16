@@ -8,37 +8,7 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>Procesador de Video</h1>
-    
-    <div id="compatibility-check" class="error-message" style="display:none;"></div>
-    
-    <div id="drop-zone">
-        Arrastra y suelta archivos MP4 aquí
-        <input type="file" id="file-input" accept="video/mp4" multiple style="display:none;">
-    </div>
-
-    <div id="video-config">
-        <div class="config-input">
-            <label>Bitrate (kbps):</label>
-            <input type="number" id="bitrate" value="2000" min="100" max="8000">
-        </div>
-        <div class="config-input">
-            <label>FPS:</label>
-            <input type="number" id="fps" value="30" min="1" max="60">
-        </div>
-        <div class="config-input">
-            <label>
-                <input type="checkbox" id="keep-audio" checked>
-                Mantener Audio
-            </label>
-        </div>
-        <button id="process-btn">Procesar Videos</button>
-    </div>
-
-    <div id="status"></div>
-
     <div id="root"></div>
-
     <script type="module" src="/src/main.jsx"></script>
 </body>
 </html>
