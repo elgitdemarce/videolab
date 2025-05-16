@@ -2,9 +2,10 @@
   "name": "video-processor",
   "version": "1.0.0",
   "scripts": {
-    "build": "npx vite build",
-    "dev": "npx vite",
-    "vercel-build": "npx vite build"
+    "build": "chmod -R 755 node_modules/.bin && npx vite build",
+    "dev": "chmod -R 755 node_modules/.bin && npx vite",
+    "vercel-build": "chmod -R 755 node_modules/.bin && npx vite build",
+    "postinstall": "chmod -R 755 node_modules/.bin"
   },
   "dependencies": {
     "@ffmpeg/ffmpeg": "^0.11.6",
