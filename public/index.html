@@ -110,13 +110,32 @@
     </div>
 
     <script>
+        // Configuración global de depuración
+        window.DEBUG = {
+            ffmpeg: true
+        };
+
+        // Función de registro de depuración
+        function debugLog(message, ...args) {
+            if (window.DEBUG.ffmpeg) {
+                console.log(`[FFmpeg Debug] ${message}`, ...args);
+            }
+        }
+
         // Función para cargar scripts de manera segura
         function loadScript(src) {
             return new Promise((resolve, reject) => {
                 const script = document.createElement('script');
                 script.src = src;
-                script.onload = () => resolve(true);
-                script.onerror = () => reject(new Error(`Error cargando script: ${src}`));
+                script.async = false;  // Asegurar carga síncrona
+                script.onload = () => {
+                    debugLog(`Script cargado: ${src}`);
+                    resolve(true);
+                };
+                script.onerror = (error) => {
+                    debugLog(`Error cargando script: ${src}`, error);
+                    reject(new Error(`No se pudo cargar el script: ${src}`));
+                };
                 document.head.appendChild(script);
             });
         }
@@ -130,21 +149,32 @@
             ];
 
             try {
+                debugLog('Iniciando inicialización de FFmpeg');
+
                 // Cargar scripts secuencialmente
                 for (const scriptSrc of scripts) {
                     await loadScript(scriptSrc);
                 }
 
-                // Verificación de FFmpeg
-                if (typeof createFFmpeg === 'undefined') {
+                // Verificaciones múltiples de FFmpeg
+                debugLog('Verificando disponibilidad de FFmpeg');
+                debugLog('window.createFFmpeg:', typeof window.createFFmpeg);
+                debugLog('window.FFmpeg:', window.FFmpeg);
+
+                // Múltiples métodos de detección
+                const createFFmpegFunc = 
+                    window.createFFmpeg || 
+                    (window.FFmpeg && window.FFmpeg.createFFmpeg);
+
+                if (!createFFmpegFunc) {
                     throw new Error('FFmpeg no está definido después de cargar scripts');
                 }
 
                 // Configuración global
                 window.FFmpeg = window.FFmpeg || {};
-                window.FFmpeg.createFFmpeg = createFFmpeg;
+                window.FFmpeg.createFFmpeg = createFFmpegFunc;
 
-                console.log('FFmpeg inicializado correctamente');
+                debugLog('FFmpeg inicializado correctamente');
             } catch (error) {
                 console.error('Error de inicialización de FFmpeg:', error);
                 
@@ -155,20 +185,38 @@
                         <div class="error-message">
                             <strong>Error de inicialización de FFmpeg</strong>
                             <p>${error.message}</p>
+                            <p>Detalles de depuración:</p>
+                            <ul>
+                                <li>createFFmpeg: ${typeof window.createFFmpeg}</li>
+                                <li>FFmpeg global: ${window.FFmpeg}</li>
+                                <li>Scripts cargados: 
+                                    <ul>
+                                        <li>ffmpeg.min.js</li>
+                                        <li>ffmpeg-core.js</li>
+                                        <li>ffmpeg-core.worker.js</li>
+                                    </ul>
+                                </li>
+                            </ul>
                             <p>Posibles soluciones:</p>
                             <ul>
                                 <li>Actualice su navegador</li>
                                 <li>Verifique la conexión a internet</li>
                                 <li>Recargue la página</li>
+                                <li>Compruebe la configuración de seguridad del navegador</li>
                             </ul>
                         </div>
                     `;
                 }
+
+                // Lanzar el error para detener la ejecución
+                throw error;
             }
         }
 
         // Inicializar FFmpeg al cargar la página
-        initFFmpeg();
+        initFFmpeg().catch(error => {
+            console.error('Error fatal en inicialización de FFmpeg:', error);
+        });
     </script>
 
     <script>
