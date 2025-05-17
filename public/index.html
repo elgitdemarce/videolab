@@ -113,6 +113,16 @@
     <script>
         window.crossOriginIsolated = true;
         
+        // Función de utilidad para cargar archivos
+        async function fetchFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(new Uint8Array(reader.result));
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
         // Fallback para FFmpeg si no está definido
         window.FFmpeg = window.FFmpeg || {};
         window.FFmpeg.createFFmpeg = window.FFmpeg.createFFmpeg || function(config) {
@@ -307,7 +317,7 @@
 
             try {
                 // Verificación de FFmpeg
-                const createFFmpegFunc = window.FFmpeg.createFFmpeg || createFFmpeg;
+                const createFFmpegFunc = window.createFFmpeg || window.FFmpeg.createFFmpeg;
                 
                 if (!createFFmpegFunc) {
                     throw new Error('FFmpeg no está definido. Verifica la carga de los scripts.');
