@@ -7,7 +7,62 @@
     <meta http-equiv="Cross-Origin-Embedder-Policy" content="require-corp">
     
     <style>
-        /* Estilos anteriores sin cambios */
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+        #drop-zone {
+            border: 3px dashed #3498db;
+            border-radius: 20px;
+            padding: 50px;
+            margin: 20px 0;
+            transition: all 0.3s ease;
+        }
+        #drop-zone.drag-over {
+            background-color: rgba(52, 152, 219, 0.1);
+            border-color: #2980b9;
+        }
+        #video-config {
+            display: none;
+            margin-top: 20px;
+        }
+        .config-input {
+            margin: 10px 0;
+        }
+        #status {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        .error-message {
+            color: red;
+            background-color: #ffeeee;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .progress-container {
+            margin: 20px 0;
+            background-color: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            width: 0;
+            height: 20px;
+            background-color: #3498db;
+            transition: width 0.5s ease;
+        }
+        .progress-details {
+            font-family: monospace;
+            text-align: left;
+            background-color: #f4f4f4;
+            padding: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
     </style>
 </head>
 <body>
@@ -56,56 +111,28 @@
 
     <!-- Configuración global de compatibilidad -->
     <script>
-        // Configuración de depuración
-        window.DEBUG = {
-            ffmpeg: true
-        };
-
-        // Función de registro de depuración
-        function debugLog(message, ...args) {
-            if (window.DEBUG.ffmpeg) {
-                console.log(`[FFmpeg Debug] ${message}`, ...args);
-            }
-        }
-
+        // Configuración global para asegurar compatibilidad
         window.crossOriginIsolated = true;
         
         // Función de utilidad para cargar archivos
         async function fetchFile(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
-                reader.onload = () => {
-                    debugLog('Archivo leído:', file.name);
-                    resolve(new Uint8Array(reader.result));
-                };
-                reader.onerror = (error) => {
-                    debugLog('Error leyendo archivo:', error);
-                    reject(error);
-                };
+                reader.onload = () => resolve(new Uint8Array(reader.result));
+                reader.onerror = reject;
                 reader.readAsArrayBuffer(file);
             });
         }
 
-        // Fallback para FFmpeg con más información de depuración
+        // Fallback para FFmpeg
         window.FFmpeg = window.FFmpeg || {};
         window.FFmpeg.createFFmpeg = window.FFmpeg.createFFmpeg || function(config) {
-            debugLog('Usando FFmpeg fallback simulado', config);
+            console.warn('Usando FFmpeg fallback simulado');
             return {
-                load: async () => {
-                    debugLog('Carga simulada de FFmpeg');
-                    throw new Error('FFmpeg no está correctamente inicializado');
-                },
-                FS: (operation, ...args) => {
-                    debugLog(`Operación FS simulada: ${operation}`, args);
-                    return null;
-                },
-                run: async () => {
-                    debugLog('Procesamiento simulado de FFmpeg');
-                    throw new Error('Procesamiento de FFmpeg no disponible');
-                },
-                setLogger: (logger) => {
-                    debugLog('Logger simulado establecido');
-                }
+                load: async () => console.warn('Carga simulada'),
+                FS: () => {},
+                run: async () => console.warn('Procesamiento simulado'),
+                setLogger: () => {}
             };
         };
     </script>
@@ -116,7 +143,171 @@
     <script src="/ffmpeg/ffmpeg-core.worker.js"></script>
 
     <script>
-        // Resto del código anterior sin cambios, solo modificaré la sección de procesamiento
+        // Elementos del DOM
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const videoConfig = document.getElementById('video-config');
+        const processBtn = document.getElementById('process-btn');
+        const statusDiv = document.getElementById('status');
+        const progressContainer = document.getElementById('progress-container');
+        const progressBar = document.getElementById('progress-bar');
+        const progressDetails = document.getElementById('progress-details');
+
+        // Estado global
+        let currentFiles = [];
+
+        // Configurar eventos de drag and drop
+        function setupDragDropEvents() {
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, preventDefaults, false);
+            });
+
+            dropZone.addEventListener('dragenter', highlight, false);
+            dropZone.addEventListener('dragover', highlight, false);
+            dropZone.addEventListener('dragleave', unhighlight, false);
+            dropZone.addEventListener('drop', handleDrop, false);
+
+            // Soporte de clic
+            dropZone.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', handleFileSelect);
+        }
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        function highlight() {
+            dropZone.classList.add('drag-over');
+        }
+
+        function unhighlight() {
+            dropZone.classList.remove('drag-over');
+        }
+
+        async function handleDrop(e) {
+            unhighlight();
+            const files = e.dataTransfer.files;
+            await processFiles(files);
+        }
+
+        async function handleFileSelect(e) {
+            const files = e.target.files;
+            await processFiles(files);
+        }
+
+        async function processFiles(files) {
+            const mp4Files = Array.from(files).filter(f => f.type === 'video/mp4');
+            const metadataDisplay = document.getElementById('metadata-display');
+            
+            if (!metadataDisplay) {
+                console.error('Elemento metadata-display no encontrado');
+                return;
+            }
+            
+            metadataDisplay.innerHTML = ''; // Limpiar contenido anterior
+            
+            if (mp4Files.length > 0) {
+                currentFiles = [...currentFiles, ...mp4Files];
+                updateDropZone();
+                videoConfig.style.display = 'block';
+                statusDiv.textContent = `${currentFiles.length} archivo(s) MP4 listo(s) para procesar`;
+
+                // Extraer y mostrar metadatos
+                for (const file of mp4Files) {
+                    try {
+                        const metadata = await extractVideoMetadata(file);
+                        const metadataElement = document.createElement('div');
+                        metadataElement.style.marginBottom = '10px';
+                        metadataElement.style.padding = '10px';
+                        metadataElement.style.backgroundColor = '#ffffff';
+                        metadataElement.style.borderRadius = '5px';
+                        metadataElement.innerHTML = `
+                            <h4>${metadata.name}</h4>
+                            <p><strong>Tamaño:</strong> ${(metadata.size / 1024 / 1024).toFixed(2)} MB</p>
+                            <p><strong>Resolución:</strong> ${metadata.resolution}</p>
+                            <p><strong>Duración:</strong> ${metadata.duration} segundos</p>
+                            <p><strong>FPS:</strong> ${metadata.fps}</p>
+                            <p><strong>Bitrate:</strong> ${metadata.bitrate}</p>
+                        `;
+                        metadataDisplay.appendChild(metadataElement);
+                    } catch (error) {
+                        console.error('Error extrayendo metadatos', error);
+                        metadataDisplay.innerHTML += `<p>Error procesando ${file.name}: ${error.message}</p>`;
+                    }
+                }
+            } else {
+                statusDiv.textContent = 'Por favor, seleccione archivos MP4';
+                dropZone.textContent = 'Arrastra y suelta archivos MP4 aquí';
+            }
+        }
+
+        function updateDropZone() {
+            dropZone.innerHTML = currentFiles.map((file, index) => 
+                `<div>Archivo ${index + 1}: ${file.name}</div>`
+            ).join('');
+            
+            // Añadir input de archivos de nuevo
+            const fileInputElement = document.createElement('input');
+            fileInputElement.type = 'file';
+            fileInputElement.id = 'file-input';
+            fileInputElement.accept = 'video/mp4';
+            fileInputElement.multiple = true;
+            fileInputElement.style.display = 'none';
+            fileInputElement.addEventListener('change', handleFileSelect);
+            dropZone.appendChild(fileInputElement);
+
+            // Añadir texto de instrucción
+            const instructionText = document.createElement('div');
+            instructionText.textContent = 'Clic para añadir más archivos';
+            instructionText.style.marginTop = '10px';
+            instructionText.style.color = '#3498db';
+            dropZone.appendChild(instructionText);
+
+            // Añadir evento de clic
+            dropZone.addEventListener('click', () => fileInputElement.click());
+        }
+
+        // Función para extraer metadatos detallados de video
+        async function extractVideoMetadata(file) {
+            return new Promise((resolve, reject) => {
+                const video = document.createElement('video');
+                video.preload = 'metadata';
+                video.src = URL.createObjectURL(file);
+                
+                video.onloadedmetadata = function() {
+                    // Intentar calcular FPS de manera más precisa
+                    let fps = 'N/A';
+                    
+                    // Método experimental para algunos navegadores
+                    if (this.mozPresentedFrames && this.duration) {
+                        fps = (this.mozPresentedFrames / this.duration).toFixed(2);
+                    } else if (this.webkitDecodedFrameCount && this.duration) {
+                        fps = (this.webkitDecodedFrameCount / this.duration).toFixed(2);
+                    }
+
+                    // Calcular bitrate aproximado
+                    const bitrate = Math.round((file.size * 8) / (this.duration * 1024)) + ' kbps';
+
+                    resolve({
+                        name: file.name,
+                        size: file.size,
+                        resolution: `${this.videoWidth}x${this.videoHeight}`,
+                        duration: this.duration.toFixed(2),
+                        fps: fps,
+                        bitrate: bitrate
+                    });
+
+                    // Liberar memoria
+                    URL.revokeObjectURL(this.src);
+                };
+
+                video.onerror = (error) => {
+                    console.error('Error cargando metadatos de video', error);
+                    reject(error);
+                };
+            });
+        }
 
         // Procesamiento de video
         processBtn.addEventListener('click', async () => {
@@ -126,20 +317,16 @@
             }
 
             try {
-                // Verificación de FFmpeg con registro detallado
-                debugLog('Buscando función createFFmpeg');
+                // Verificación de FFmpeg
                 const createFFmpegFunc = window.createFFmpeg || 
                                          window.FFmpeg.createFFmpeg || 
-                                         window.FFmpeg?.createFFmpeg;
-                
-                debugLog('Función createFFmpeg encontrada:', !!createFFmpegFunc);
+                                         (window.FFmpeg && window.FFmpeg.createFFmpeg);
                 
                 if (!createFFmpegFunc) {
                     throw new Error('FFmpeg no está definido. Verifica la carga de los scripts.');
                 }
 
                 // Cargar FFmpeg
-                debugLog('Inicializando FFmpeg');
                 const ffmpeg = createFFmpegFunc({ 
                     log: true,
                     corePath: '/ffmpeg/ffmpeg-core.js',
@@ -149,7 +336,6 @@
                 
                 // Configurar logger personalizado
                 ffmpeg.setLogger((log) => {
-                    debugLog('Log de FFmpeg:', log.message);
                     progressContainer.style.display = 'block';
                     progressDetails.innerHTML += `${log.message}<br>`;
                 });
@@ -172,11 +358,7 @@
                     const originalMetadata = await extractVideoMetadata(currentFile);
 
                     // Escribir archivo de entrada
-                    debugLog('Escribiendo archivo de entrada');
-                    const fileData = await fetchFile(currentFile);
-                    debugLog('Datos de archivo leídos:', fileData);
-                    
-                    ffmpeg.FS('writeFile', 'input.mp4', fileData);
+                    ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(currentFile));
 
                     // Obtener configuraciones
                     const bitrate = document.getElementById('bitrate').value;
@@ -196,13 +378,10 @@
                     ].filter(Boolean);
 
                     // Procesar video
-                    debugLog('Ejecutando comando FFmpeg', ffmpegCommand);
                     await ffmpeg.run(...ffmpegCommand);
                     
                     // Leer archivo de salida
-                    debugLog('Leyendo archivo de salida');
                     const data = ffmpeg.FS('readFile', 'output.mp4');
-                    debugLog('Datos de salida:', data);
 
                     // Crear blob y descargar video
                     const blob = new Blob([data.buffer], { type: 'video/mp4' });
@@ -265,7 +444,13 @@ Detalles de depuración:
             }
         });
 
-        // Resto del código anterior sin cambios
+        // Inicialización
+        function init() {
+            setupDragDropEvents();
+        }
+
+        // Ejecutar inicialización
+        init();
     </script>
 </body>
 </html>
