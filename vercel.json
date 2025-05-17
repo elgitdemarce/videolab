@@ -4,8 +4,9 @@
     {
       "src": "package.json",
       "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
+      "config": { 
+        "distDir": "dist",
+        "buildCommand": "npm run build"
       }
     }
   ],
@@ -14,8 +15,5 @@
       "src": "/(.*)",
       "dest": "/index.html"
     }
-  ],
-  "buildCommand": "npm run vercel-build",
-  "installCommand": "npm ci && chmod -R 755 node_modules/.bin",
-  "devCommand": "vite"
+  ]
 }

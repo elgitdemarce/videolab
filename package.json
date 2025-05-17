@@ -2,10 +2,9 @@
   "name": "video-processor",
   "version": "1.0.0",
   "scripts": {
-    "preinstall": "mkdir -p node_modules/.bin && chmod -R 755 node_modules/.bin",
     "build": "vite build",
     "dev": "vite",
-    "vercel-build": "chmod -R 755 node_modules/.bin && vite build"
+    "vercel-build": "vite build"
   },
   "dependencies": {
     "@ffmpeg/ffmpeg": "^0.11.6",
