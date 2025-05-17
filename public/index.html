@@ -298,16 +298,16 @@
 
             try {
                 // Verificación de FFmpeg
-                const createFFmpegFunc = window.createFFmpeg || 
-                                         window.FFmpeg?.createFFmpeg || 
-                                         (window.FFmpeg && window.FFmpeg.createFFmpeg);
+                const createFFmpeg = window.createFFmpeg || 
+                                     window.FFmpeg?.createFFmpeg || 
+                                     (window.FFmpeg && window.FFmpeg.createFFmpeg);
                 
-                if (!createFFmpegFunc) {
+                if (!createFFmpeg) {
                     throw new Error('FFmpeg no está definido. Verifica la carga de los scripts.');
                 }
 
                 // Cargar FFmpeg
-                const ffmpeg = createFFmpegFunc({ 
+                const ffmpeg = createFFmpeg({ 
                     log: true,
                     corePath: '/ffmpeg/ffmpeg-core.js',
                     mainName: 'main',
