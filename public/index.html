@@ -109,7 +109,6 @@
         <div id="metadata-display"></div>
     </div>
 
-    <!-- Configuración global de compatibilidad -->
     <script>
         // Configuración global para asegurar compatibilidad
         window.crossOriginIsolated = true;
@@ -124,25 +123,6 @@
             });
         }
 
-        // Fallback para FFmpeg
-        window.FFmpeg = window.FFmpeg || {};
-        window.FFmpeg.createFFmpeg = window.FFmpeg.createFFmpeg || function(config) {
-            console.warn('Usando FFmpeg fallback simulado');
-            return {
-                load: async () => console.warn('Carga simulada'),
-                FS: () => {},
-                run: async () => console.warn('Procesamiento simulado'),
-                setLogger: () => {}
-            };
-        };
-    </script>
-
-    <!-- Scripts de FFmpeg -->
-    <script src="/ffmpeg/ffmpeg.min.js"></script>
-    <script src="/ffmpeg/ffmpeg-core.js"></script>
-    <script src="/ffmpeg/ffmpeg-core.worker.js"></script>
-
-    <script>
         // Elementos del DOM
         const dropZone = document.getElementById('drop-zone');
         const fileInput = document.getElementById('file-input');
@@ -319,7 +299,7 @@
             try {
                 // Verificación de FFmpeg
                 const createFFmpegFunc = window.createFFmpeg || 
-                                         window.FFmpeg.createFFmpeg || 
+                                         window.FFmpeg?.createFFmpeg || 
                                          (window.FFmpeg && window.FFmpeg.createFFmpeg);
                 
                 if (!createFFmpegFunc) {
@@ -358,7 +338,8 @@
                     const originalMetadata = await extractVideoMetadata(currentFile);
 
                     // Escribir archivo de entrada
-                    ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(currentFile));
+                    const fileData = await fetchFile(currentFile);
+                    ffmpeg.FS('writeFile', 'input.mp4', fileData);
 
                     // Obtener configuraciones
                     const bitrate = document.getElementById('bitrate').value;
@@ -452,5 +433,10 @@ Detalles de depuración:
         // Ejecutar inicialización
         init();
     </script>
+
+    <!-- Scripts de FFmpeg -->
+    <script src="/ffmpeg/ffmpeg.min.js"></script>
+    <script src="/ffmpeg/ffmpeg-core.js"></script>
+    <script src="/ffmpeg/ffmpeg-core.worker.js"></script>
 </body>
 </html>
