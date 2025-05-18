@@ -127,18 +127,64 @@
             return new Promise((resolve, reject) => {
                 debugLog(`Intentando cargar script: ${src}`);
 
-                const script = document.createElement('script');
-                script.src = src;
-                script.async = false;
-                script.onload = () => {
-                    debugLog(`Script cargado: ${src}`);
-                    resolve(true);
-                };
-                script.onerror = (error) => {
-                    debugLog(`Error cargando script: ${src}`, error);
-                    reject(error);
-                };
-                document.head.appendChild(script);
+                // Estrategia de carga con fetch y validación
+                fetch(src)
+                    .then(response => {
+                        // Verificar estado de la respuesta
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}, statusText: ${response.statusText}`);
+                        }
+                        return response.text();
+                    })
+                    .then(scriptContent => {
+                        // Validar contenido del script
+                        if (scriptContent.trim().startsWith('<!') || scriptContent.includes('<html>')) {
+                            throw new Error(`Received HTML instead of JavaScript for ${src}`);
+                        }
+
+                        // Verificar si el contenido parece ser un script JavaScript válido
+                        if (!scriptContent.trim().startsWith('(') && 
+                            !scriptContent.trim().startsWith('function') && 
+                            !scriptContent.trim().startsWith('var ') && 
+                            !scriptContent.trim().startsWith('let ') && 
+                            !scriptContent.trim().startsWith('const ')) {
+                            throw new Error(`Invalid JavaScript content for ${src}`);
+                        }
+
+                        // Crear script manualmente
+                        const script = document.createElement('script');
+                        script.textContent = scriptContent;
+                        script.async = false;
+                        
+                        script.onerror = (error) => {
+                            debugLog(`Error ejecutando script: ${src}`, error);
+                            reject(error);
+                        };
+
+                        document.head.appendChild(script);
+                        debugLog(`Script cargado manualmente: ${src}`);
+                        resolve(true);
+                    })
+                    .catch(error => {
+                        debugLog(`Error completo al cargar ${src}:`, error);
+                        
+                        // Intentar carga tradicional como fallback
+                        const fallbackScript = document.createElement('script');
+                        fallbackScript.src = src;
+                        fallbackScript.async = false;
+                        
+                        fallbackScript.onload = () => {
+                            debugLog(`Fallback: Script cargado tradicionalmente: ${src}`);
+                            resolve(true);
+                        };
+                        
+                        fallbackScript.onerror = (fallbackError) => {
+                            debugLog(`Fallback: Error cargando script: ${src}`, fallbackError);
+                            reject(fallbackError);
+                        };
+                        
+                        document.head.appendChild(fallbackScript);
+                    });
             });
         }
 
