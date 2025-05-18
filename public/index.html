@@ -94,6 +94,10 @@
                 Mantener Audio
             </label>
         </div>
+        <div class="config-input">
+            <label>Partes Horizontales:</label>
+            <input type="number" id="horizontal-parts" value="1" min="1" max="10" title="Número de partes para dividir horizontalmente el video">
+        </div>
         <button id="process-btn">Procesar Videos</button>
     </div>
 
@@ -351,6 +355,7 @@
             const fps = document.getElementById('fps').value;
             const keepAudio = document.getElementById('keep-audio').checked;
             const buffsize = document.getElementById('buffsize').value;
+            const horizontalParts = document.getElementById('horizontal-parts').value;
 
             // Informe consolidado de metadatos
             const metadataReports = [];
@@ -387,34 +392,45 @@
                     // Escribir archivo de entrada
                     ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(currentFile));
 
-                    // Construir comando FFmpeg
-                    const ffmpegCommand = [
-                        '-i', 'input.mp4',
-                        '-c:v', 'libx264',
-                        '-profile:v', 'high',
-                        '-level', '4.0',
-                        '-b:v', `${bitrate}k`,
-                        '-r', fps,
-                        keepAudio ? '' : '-an',
-                        'output.mp4'
-                    ].filter(Boolean);
+                    // Parsear resolución original
+                    const [origWidth, origHeight] = originalMetadata.resolution.split('x').map(Number);
+                    const cropWidth = Math.floor(origWidth / horizontalParts);
 
-                    // Procesar video
-                    await ffmpeg.run(...ffmpegCommand);
-                    
-                    // Leer archivo de salida
-                    const data = ffmpeg.FS('readFile', 'output.mp4');
+                    // Procesar cada parte horizontal
+                    for (let part = 0; part < horizontalParts; part++) {
+                        const offset = part * cropWidth;
+                        const outputName = `parte_${part + 1}_${currentFile.name}`;
 
-                    // Crear blob y descargar video
-                    const blob = new Blob([data.buffer], { type: 'video/mp4' });
-                    const url = URL.createObjectURL(blob);
-                    
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `processed_${currentFile.name}`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
+                        // Construir comando FFmpeg para cortar y procesar
+                        const ffmpegCommand = [
+                            '-i', 'input.mp4',
+                            '-filter:v', `crop=${cropWidth}:${origHeight}:${offset}:0`,
+                            '-c:v', 'libx264',
+                            '-profile:v', 'high',
+                            '-level', '4.0',
+                            '-b:v', `${bitrate}k`,
+                            '-r', fps,
+                            keepAudio ? '' : '-an',
+                            outputName
+                        ].filter(Boolean);
+
+                        // Procesar parte del video
+                        await ffmpeg.run(...ffmpegCommand);
+                        
+                        // Leer archivo de salida
+                        const data = ffmpeg.FS('readFile', outputName);
+
+                        // Crear blob y descargar video
+                        const blob = new Blob([data.buffer], { type: 'video/mp4' });
+                        const url = URL.createObjectURL(blob);
+                        
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = outputName;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                    }
 
                     // Generar informe de metadatos
                     const metadataReport = `
@@ -431,6 +447,7 @@ Metadatos Originales:
 - Level Original: ${originalMetadata.level}
 
 Configuraciones de Procesamiento:
+- Partes Horizontales: ${horizontalParts}
 - Bitrate: ${bitrate}k
 - FPS: ${fps}
 - Audio: ${keepAudio ? 'Mantenido' : 'Removido'}
