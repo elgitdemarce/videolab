@@ -1,514 +1,289 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <title>Procesador de Video</title>
-    <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin">
-    <meta http-equiv="Cross-Origin-Embedder-Policy" content="require-corp">
-    
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            text-align: center;
-        }
-        #drop-zone {
-            border: 3px dashed #3498db;
-            border-radius: 20px;
-            padding: 50px;
-            margin: 20px 0;
-            transition: all 0.3s ease;
-        }
-        #drop-zone.drag-over {
-            background-color: rgba(52, 152, 219, 0.1);
-            border-color: #2980b9;
-        }
-        #video-config {
-            display: none;
-            margin-top: 20px;
-        }
-        .config-input {
-            margin: 10px 0;
-        }
-        #status {
-            margin-top: 20px;
-            font-weight: bold;
-        }
-        .error-message {
-            color: red;
-            background-color: #ffeeee;
-            padding: 10px;
-            border-radius: 5px;
-            margin-top: 20px;
-        }
-        .progress-container {
-            margin: 20px 0;
-            background-color: #f0f0f0;
-            border-radius: 10px;
-            overflow: hidden;
-        }
-        .progress-bar {
-            width: 0;
-            height: 20px;
-            background-color: #3498db;
-            transition: width 0.5s ease;
-        }
-        .progress-details {
-            font-family: monospace;
-            text-align: left;
-            background-color: #f4f4f4;
-            padding: 10px;
-            max-height: 200px;
-            overflow-y: auto;
-        }
-    </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SIA LAB | Video Process</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 20px; }
+  label { display: block; margin-top: 10px; }
+  input[type="number"] { width: 80px; }
+  #progress { width: 100%; height: 20px; margin-top: 10px; }
+  #progressDetails a { display: block; margin-top: 5px; }
+  #status { color: #3f8ef5; margin-top: 10px; font-weight: bold; }
+
+  /* Zona Drag and Drop */
+  #dropZone {
+    margin-top: 15px;
+    padding: 60px;
+    border: 3px dashed #69a2d1;
+    border-radius: 8px;
+    text-align: center;
+    color: #5874f5;
+    transition: background-color 0.3s, border-color 0.3s;
+    user-select: none;
+  }
+  #dropZone.dragover {
+    background-color: #f0f8ff;
+    border-color: #1e90ff;
+    color: #1e90ff;
+  }
+</style>
 </head>
 <body>
-    <h1>Procesador de Video</h1>
-    
-    <div id="compatibility-check" class="error-message" style="display:none;"></div>
-    
-    <div id="drop-zone">
-        Arrastra y suelta archivos MP4 aquí
-        <input type="file" id="file-input" accept="video/mp4" multiple style="display:none;">
-    </div>
 
-    <div id="video-config">
-        <div class="config-input">
-            <label>Bitrate (kbps):</label>
-            <input type="number" id="bitrate" value="2000" min="100" max="8000">
-        </div>
-        <div class="config-input">
-            <label>FPS:</label>
-            <input type="number" id="fps" value="30" min="1" max="60">
-        </div>
-        <div class="config-input">
-            <label>Buffer Size (kB):</label>
-            <input type="number" id="buffsize" value="8192" min="1024" max="8192">
-        </div>
-        <div class="config-input">
-            <label>
-                <input type="checkbox" id="keep-audio" checked>
-                Mantener Audio
-            </label>
-        </div>
-        <div class="config-input">
-            <label>Partes Horizontales:</label>
-            <input type="number" id="horizontal-parts" value="1" min="1" max="10" title="Número de partes para dividir horizontalmente el video">
-        </div>
-        <button id="process-btn">Procesar Videos</button>
-    </div>
+<h2>SIA LAB | Video Process</h2>
 
-    <div id="progress-container" class="progress-container" style="display:none;">
-        <div class="progress-bar" id="progress-bar"></div>
-        <div class="progress-details" id="progress-details"></div>
-    </div>
+<label>Selecciona archivos de video:
+  <input type="file" id="fileInput" multiple accept="video/*" />
+</label>
 
-    <div id="status"></div>
+<!-- Zona Drag and Drop -->
+<div id="dropZone">Ó directamente arrastra y suelta tus archivos de video aquí para agregarlos</div>
 
-    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.10.1/dist/ffmpeg.min.js"></script>
-    <script>
-        // Función de verificación de compatibilidad
-        function checkCompatibility() {
-            const compatibilityCheck = document.getElementById('compatibility-check');
-            const checks = [
-                {
-                    name: 'SharedArrayBuffer',
-                    check: () => typeof SharedArrayBuffer !== 'undefined',
-                    message: 'Su navegador no soporta SharedArrayBuffer. Actualice o use un navegador compatible.'
-                },
-                {
-                    name: 'Cross-Origin Isolation',
-                    check: () => window.crossOriginIsolated,
-                    message: 'La página no está cross-origin isolated. Verifique los encabezados de seguridad.'
-                },
-                {
-                    name: 'WebAssembly',
-                    check: () => !!window.WebAssembly,
-                    message: 'Su navegador no soporta WebAssembly.'
-                }
-            ];
+<label>Bitrate (kbps):
+  <input type="number" id="bitrate" value="2000" min="100" max="10000" />
+</label>
 
-            const failedChecks = checks.filter(check => !check.check());
+<label>FPS:
+  <input type="number" id="fps" value="30" min="1" max="60" />
+</label>
 
-            if (failedChecks.length > 0) {
-                compatibilityCheck.style.display = 'block';
-                compatibilityCheck.innerHTML = `
-                    <strong>Problemas de Compatibilidad:</strong>
-                    <ul>
-                        ${failedChecks.map(check => `<li>${check.message}</li>`).join('')}
-                    </ul>
-                    <p>Soluciones posibles:</p>
-                    <ul>
-                        <li>Actualice su navegador a la última versión</li>
-                        <li>Asegúrese de estar en un sitio HTTPS</li>
-                        <li>Verifique la configuración de seguridad de su navegador</li>
-                    </ul>
-                `;
-                return false;
-            }
+<label>Buffer size (kb):
+  <input type="number" id="buffsize" value="8192" min="1024" max="65536" />
+</label>
 
-            compatibilityCheck.style.display = 'none';
-            return true;
+<label>
+  <input type="checkbox" id="keepAudio" checked /> Mantener audio
+</label>
+
+<label>Número de partes a dividir horizontalmente:
+  <input type="number" id="parts" value="1" min="1" max="10" />
+</label>
+
+<button id="start">Procesar Videos</button>
+
+<progress id="progress" value="0" max="100"></progress>
+
+<div id="status"></div>
+
+<div id="progressDetails"></div>
+
+<script src="https://unpkg.com/@ffmpeg/ffmpeg@0.10.1/dist/ffmpeg.min.js"></script>
+<script>
+  const { createFFmpeg, fetchFile } = FFmpeg;
+  const startBtn = document.getElementById('start');
+  const bitrateInput = document.getElementById('bitrate');
+  const fpsInput = document.getElementById('fps');
+  const buffsizeInput = document.getElementById('buffsize');
+  const keepAudioCheckbox = document.getElementById('keepAudio');
+  const partsInput = document.getElementById('parts');
+  const progressBar = document.getElementById('progress');
+  const statusDiv = document.getElementById('status');
+  const progressDetails = document.getElementById('progressDetails');
+  const fileInput = document.getElementById('fileInput');
+  const dropZone = document.getElementById('dropZone');
+
+  let currentFiles = [];
+  let isProcessing = false;
+
+  // Variable para almacenar los logs de consola
+  let ffmpegLogs = '';
+
+  // Actualizar currentFiles al seleccionar archivos con el input
+  fileInput.addEventListener('change', () => {
+    currentFiles = Array.from(fileInput.files);
+  });
+
+  // Función para añadir archivos desde drop (sin duplicados)
+  function addFiles(newFiles) {
+    for (const file of newFiles) {
+      if (!currentFiles.some(f => f.name === file.name && f.size === file.size && f.lastModified === file.lastModified)) {
+        currentFiles.push(file);
+      }
+    }
+  }
+
+  // Drag & Drop listeners
+  dropZone.addEventListener('dragenter', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dropZone.classList.add('dragover');
+  });
+
+  dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dropZone.classList.add('dragover');
+  });
+
+  dropZone.addEventListener('dragleave', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!dropZone.contains(e.relatedTarget)) {
+      dropZone.classList.remove('dragover');
+    }
+  });
+
+  dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dropZone.classList.remove('dragover');
+
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const droppedFiles = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('video/'));
+      if (droppedFiles.length === 0) {
+        alert('Solo se permiten archivos de video.');
+        return;
+      }
+      addFiles(droppedFiles);
+      statusDiv.textContent = `${currentFiles.length} archivo(s) listo(s) para procesar: ${currentFiles.map(f => f.name).join(', ')}`;
+    }
+  });
+
+  const ffmpeg = createFFmpeg({ log: true });
+
+  async function getVideoDimensions(file) {
+    return new Promise((resolve) => {
+      const video = document.createElement('video');
+      video.preload = 'metadata';
+      video.src = URL.createObjectURL(file);
+      video.onloadedmetadata = () => {
+        resolve({ width: video.videoWidth, height: video.videoHeight });
+        URL.revokeObjectURL(video.src);
+      };
+    });
+  }
+
+  function setProgress(value) {
+    progressBar.value = value;
+  }
+
+  startBtn.onclick = () => processFiles();
+
+  async function processFiles() {
+    if (isProcessing) {
+      alert('Ya hay un proceso en ejecución. Espera a que termine.');
+      return;
+    }
+    if (currentFiles.length === 0) {
+      alert('No hay archivos para procesar.');
+      return;
+    }
+
+    isProcessing = true;
+    startBtn.disabled = true;
+    setProgress(0);
+    progressDetails.innerHTML = '';
+    statusDiv.textContent = 'Cargando FFmpeg...';
+
+    ffmpegLogs = ''; // Reiniciar logs
+
+    try {
+      if (!ffmpeg.isLoaded()) {
+        await ffmpeg.load();
+      }
+
+      // Capturar logs de ffmpeg y guardarlos en ffmpegLogs
+      ffmpeg.setLogger(({ type, message }) => {
+        ffmpegLogs += `[${type}] ${message}\n`;
+      });
+
+      const bitrate = parseInt(bitrateInput.value, 10) || 2000;
+      const fps = parseInt(fpsInput.value, 10) || 30;
+      const buffsize = parseInt(buffsizeInput.value, 10) || 8192;
+      const keepAudio = keepAudioCheckbox.checked;
+      const parts = Math.max(1, parseInt(partsInput.value, 10) || 1);
+
+      let totalTasks = currentFiles.length * parts;
+      let completedTasks = 0;
+
+      for (let fileIndex = 0; fileIndex < currentFiles.length; fileIndex++) {
+        const file = currentFiles[fileIndex];
+
+        const { width, height } = await getVideoDimensions(file);
+        const cropWidth = Math.floor(width / parts);
+        const cropHeight = height;
+
+        try { ffmpeg.FS('unlink', 'input.mp4'); } catch {}
+
+        ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(file));
+
+        for (let i = 0; i < parts; i++) {
+          const offsetX = i * cropWidth;
+          const outputName = `output_part${i + 1}.mp4`;
+
+          const cropFilter = `crop=${cropWidth}:${cropHeight}:${offsetX}:0`;
+
+          let args = [
+            '-i', 'input.mp4',
+            '-filter:v', cropFilter,
+            '-c:v', 'libx264',
+            '-profile:v', 'high',
+            '-level', '4.0',
+            '-b:v', `${bitrate}k`,
+            '-r', fps.toString(),
+            '-bufsize', `${buffsize}k`
+          ];
+
+          if (!keepAudio) {
+            args.push('-an');
+          } else {
+            args.push('-c:a', 'copy');
+          }
+
+          args.push(outputName);
+
+          ffmpeg.setProgress(({ ratio }) => {
+            const globalProgress = ((completedTasks + ratio) / totalTasks) * 100;
+            setProgress(globalProgress);
+            statusDiv.textContent = `Procesando ${file.name}, parte ${i + 1} de ${parts} (${globalProgress.toFixed(1)}%)`;
+          });
+
+          await ffmpeg.run(...args);
+
+          const data = ffmpeg.FS('readFile', outputName);
+          const videoBlob = new Blob([data.buffer], { type: 'video/mp4' });
+          const url = URL.createObjectURL(videoBlob);
+
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `procesado_parte${i + 1}_${file.name}`;
+          a.textContent = `Descargar parte ${i + 1} de ${file.name}`;
+          progressDetails.appendChild(a);
+
+          try { ffmpeg.FS('unlink', outputName); } catch {}
+
+          completedTasks++;
         }
 
-        // Elementos del DOM
-        const dropZone = document.getElementById('drop-zone');
-        const fileInput = document.getElementById('file-input');
-        const videoConfig = document.getElementById('video-config');
-        const processBtn = document.getElementById('process-btn');
-        const statusDiv = document.getElementById('status');
-        const progressContainer = document.getElementById('progress-container');
-        const progressBar = document.getElementById('progress-bar');
-        const progressDetails = document.getElementById('progress-details');
+        try { ffmpeg.FS('unlink', 'input.mp4'); } catch {}
+      }
 
-        // Estado global
-        let currentFiles = [];
+      setProgress(100);
+      statusDiv.textContent = 'Procesamiento completado.';
 
-        // Configurar eventos de drag and drop
-        function setupDragDropEvents() {
-            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                dropZone.addEventListener(eventName, preventDefaults, false);
-            });
+      // Crear enlace para descargar logs en txt
+      const logBlob = new Blob([ffmpegLogs], { type: 'text/plain' });
+      const logUrl = URL.createObjectURL(logBlob);
+      const logLink = document.createElement('a');
+      logLink.href = logUrl;
+      logLink.download = 'ffmpeg_logs.txt';
+      logLink.textContent = 'Descargar registro completo de consola (logs)';
+      logLink.style.display = 'block';
+      logLink.style.marginTop = '15px';
+      progressDetails.appendChild(logLink);
 
-            dropZone.addEventListener('dragenter', highlight, false);
-            dropZone.addEventListener('dragover', highlight, false);
-            dropZone.addEventListener('dragleave', unhighlight, false);
-            dropZone.addEventListener('drop', handleDrop, false);
+    } catch (err) {
+      console.error(err);
+      statusDiv.textContent = 'Error durante el procesamiento: ' + err.message;
+    } finally {
+      startBtn.disabled = false;
+      ffmpeg.setProgress(() => {});
+      isProcessing = false;
+    }
+  }
+</script>
 
-            // Soporte de clic
-            dropZone.addEventListener('click', () => fileInput.click());
-            fileInput.addEventListener('change', handleFileSelect);
-        }
-
-        
-        function preventDefaults(e) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-
-        function highlight() {
-            dropZone.classList.add('drag-over');
-        }
-
-        function unhighlight() {
-            dropZone.classList.remove('drag-over');
-        }
-
-        function handleDrop(e) {
-            unhighlight();
-            const files = e.dataTransfer.files;
-            processFiles(files);
-        }
-
-        function handleFileSelect(e) {
-            const files = e.target.files;
-            processFiles(files);
-        }
-
-        function processFiles(files) {
-            const mp4Files = Array.from(files).filter(f => f.type === 'video/mp4');
-            
-            if (mp4Files.length > 0) {
-                currentFiles = [...currentFiles, ...mp4Files];
-                updateDropZone();
-                videoConfig.style.display = 'block';
-                statusDiv.textContent = `${currentFiles.length} archivo(s) MP4 listo(s) para procesar`;
-            } else {
-                statusDiv.textContent = 'Por favor, seleccione archivos MP4';
-                dropZone.textContent = 'Arrastra y suelta archivos MP4 aquí';
-            }
-        }
-
-        function updateDropZone() {
-            dropZone.innerHTML = currentFiles.map((file, index) => 
-                `<div>Archivo ${index + 1}: ${file.name}</div>`
-            ).join('');
-            
-            // Añadir input de archivos de nuevo
-            const fileInputElement = document.createElement('input');
-            fileInputElement.type = 'file';
-            fileInputElement.id = 'file-input';
-            fileInputElement.accept = 'video/mp4';
-            fileInputElement.multiple = true;
-            fileInputElement.style.display = 'none';
-            fileInputElement.addEventListener('change', handleFileSelect);
-            dropZone.appendChild(fileInputElement);
-
-            // Añadir texto de instrucción
-            const instructionText = document.createElement('div');
-            instructionText.textContent = 'Clic para añadir más archivos';
-            instructionText.style.marginTop = '10px';
-            instructionText.style.color = '#3498db';
-            dropZone.appendChild(instructionText);
-
-            // Añadir evento de clic
-            dropZone.addEventListener('click', () => fileInputElement.click());
-        }
-        // Función para parsear eventos de FFmpeg
-        function parseFFmpegLog(log) {
-            progressContainer.style.display = 'block';
-            progressDetails.innerHTML += `${log.message}<br>`;
-
-            // Extraer información de progreso
-            const frameMatch = log.message.match(/frame=\s*(\d+)/);
-            const timeMatch = log.message.match(/time=(\d+:\d+:\d+\.\d+)/);
-            const fpsMatch = log.message.match(/fps=\s*(\d+\.\d+)/);
-            const sizeMatch = log.message.match(/size=\s*(\d+)kB/);
-            const speedMatch = log.message.match(/speed=\s*(\d+\.\d+)x/);
-
-            // Actualizar barra de progreso y detalles
-            if (frameMatch && timeMatch) {
-                // Calcular progreso (simplificado)
-                const frames = parseInt(frameMatch[1]);
-                const progressPercentage = Math.min(frames / 1000 * 100, 100);
-                progressBar.style.width = `${progressPercentage}%`;
-            }
-
-            // Scroll automático al final
-            progressDetails.scrollTop = progressDetails.scrollHeight;
-        }
-        // Función para extraer metadatos detallados de video
-        async function extractVideoMetadata(file, ffmpeg) {
-            return new Promise(async (resolve, reject) => {
-                // Metadatos básicos del archivo
-                const basicMetadata = {
-                    size: file.size,
-                    resolution: '',
-                    duration: '',
-                    fps: '',
-                    bitrate: '',
-                    codec: '',
-                    profile: '',
-                    level: ''
-                };
-
-                try {
-                    // Escribir archivo para análisis
-                    ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(file));
-
-                    // Ejecutar ffprobe para obtener metadatos detallados
-                    const ffprobeCmd = [
-                        '-v', 'quiet', 
-                        '-print_format', 'json', 
-                        '-show_format', 
-                        '-show_streams', 
-                        'input.mp4'
-                    ];
-
-                    // Ejecutar comando de análisis
-                    await ffmpeg.run('-i', 'input.mp4');
-                    
-                    // Leer resultado de ffprobe
-                    const probeOutput = ffmpeg.FS('readFile', 'input.mp4');
-                    const probeText = new TextDecoder().decode(probeOutput);
-                    const probeData = JSON.parse(probeText);
-
-                    // Buscar stream de video
-                    const videoStream = probeData.streams.find(stream => stream.codec_type === 'video');
-
-                    if (videoStream) {
-                        // Extraer metadatos del video
-                        basicMetadata.resolution = `${videoStream.width}x${videoStream.height}`;
-                        
-                        // Calcular FPS
-                        if (videoStream.avg_frame_rate) {
-                            const [num, den] = videoStream.avg_frame_rate.split('/').map(Number);
-                            basicMetadata.fps = (num / den).toFixed(2);
-                        } else {
-                            basicMetadata.fps = 'N/A';
-                        }
-
-                        basicMetadata.codec = videoStream.codec_name || 'N/A';
-                        basicMetadata.profile = videoStream.profile || 'N/A';
-                        basicMetadata.level = videoStream.level ? 
-                            (videoStream.level / 10).toFixed(1) : 'N/A';
-                    }
-
-                    // Metadatos de formato
-                    if (probeData.format) {
-                        basicMetadata.duration = parseFloat(probeData.format.duration).toFixed(2);
-                        basicMetadata.bitrate = probeData.format.bit_rate ? 
-                            (parseInt(probeData.format.bit_rate) / 1000).toFixed(0) + 'k' : 'N/A';
-                    }
-
-                    resolve(basicMetadata);
-
-                } catch (error) {
-                    console.error('Error extrayendo metadatos:', error);
-                    resolve(basicMetadata);
-                }
-            });
-        }
-
-        // Procesamiento de video
-        processBtn.addEventListener('click', async () => {
-            if (currentFiles.length === 0) {
-                statusDiv.textContent = 'Por favor, seleccione archivos primero';
-                return;
-            }
-
-            // Obtener configuraciones
-            const bitrate = document.getElementById('bitrate').value;
-            const fps = document.getElementById('fps').value;
-            const keepAudio = document.getElementById('keep-audio').checked;
-            const buffsize = document.getElementById('buffsize').value;
-            const horizontalParts = document.getElementById('horizontal-parts').value;
-
-            // Informe consolidado de metadatos
-            const metadataReports = [];
-
-            try {
-                // Cargar FFmpeg
-                const { createFFmpeg, fetchFile } = FFmpeg;
-                const ffmpeg = createFFmpeg({ 
-                    log: true,
-                    corePath: 'https://unpkg.com/@ffmpeg/core@0.10.0/dist/ffmpeg-core.js'
-                });
-                
-                // Configurar logger personalizado
-                ffmpeg.setLogger((log) => {
-                    parseFFmpegLog(log);
-                });
-
-                statusDiv.textContent = 'Cargando FFmpeg...';
-                await ffmpeg.load();
-
-                // Procesar cada archivo
-                for (let index = 0; index < currentFiles.length; index++) {
-                    // Resetear progreso
-                    progressContainer.style.display = 'block';
-                    progressBar.style.width = '0%';
-                    progressDetails.innerHTML = '';
-
-                    const currentFile = currentFiles[index];
-                    statusDiv.textContent = `Procesando video ${index + 1} de ${currentFiles.length}`;
-
-                    // Extraer metadatos originales
-                    const originalMetadata = await extractVideoMetadata(currentFile, ffmpeg);
-
-                    // Escribir archivo de entrada
-                    ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(currentFile));
-
-                    // Parsear resolución original
-                    const [origWidth, origHeight] = originalMetadata.resolution.split('x').map(Number);
-                    const cropWidth = Math.floor(origWidth / horizontalParts);
-
-                    // Procesar cada parte horizontal
-                    for (let part = 0; part < horizontalParts; part++) {
-                        const offset = part * cropWidth;
-                        const outputName = `parte_${part + 1}_${currentFile.name}`;
-
-                        // Construir comando FFmpeg para cortar y procesar
-                        const ffmpegCommand = [
-                            '-i', 'input.mp4',
-                            '-filter:v', `crop=${cropWidth}:${origHeight}:${offset}:0`,
-                            '-c:v', 'libx264',
-                            '-profile:v', 'high',
-                            '-level', '4.0',
-                            '-b:v', `${bitrate}k`,
-                            '-r', fps,
-                            keepAudio ? '' : '-an',
-                            outputName
-                        ].filter(Boolean);
-
-                        // Procesar parte del video
-                        await ffmpeg.run(...ffmpegCommand);
-                        
-                        // Leer archivo de salida
-                        const data = ffmpeg.FS('readFile', outputName);
-
-                        // Crear blob y descargar video
-                        const blob = new Blob([data.buffer], { type: 'video/mp4' });
-                        const url = URL.createObjectURL(blob);
-                        
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = outputName;
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                    }
-
-                    // Generar informe de metadatos
-                    const metadataReport = `
-Archivo: ${currentFile.name}
-
-Metadatos Originales:
-- Tamaño: ${originalMetadata.size} bytes
-- Resolución: ${originalMetadata.resolution}
-- Duración: ${originalMetadata.duration} segundos
-- FPS Original: ${originalMetadata.fps}
-- Bitrate Original: ${originalMetadata.bitrate}
-- Codec Original: ${originalMetadata.codec}
-- Profile Original: ${originalMetadata.profile}
-- Level Original: ${originalMetadata.level}
-
-Configuraciones de Procesamiento:
-- Partes Horizontales: ${horizontalParts}
-- Bitrate: ${bitrate}k
-- FPS: ${fps}
-- Audio: ${keepAudio ? 'Mantenido' : 'Removido'}
-- Codec: H.264
-- Profile: High
-- Level: 4.0
-`;
-                    metadataReports.push(metadataReport);
-                }
-
-                // Descargar informe consolidado
-                const consolidatedReport = metadataReports.join('\n\n---\n\n');
-                const reportBlob = new Blob([consolidatedReport], { type: 'text/plain' });
-                const reportUrl = URL.createObjectURL(reportBlob);
-                
-                const reportLink = document.createElement('a');
-                reportLink.href = reportUrl;
-                reportLink.download = 'video_processing_report.txt';
-                document.body.appendChild(reportLink);
-                reportLink.click();
-                document.body.removeChild(reportLink);
-
-                statusDiv.textContent = 'Procesamiento completado';
-                currentFiles = []; // Limpiar lista de archivos
-                dropZone.textContent = 'Arrastra y suelta archivos MP4 aquí';
-                videoConfig.style.display = 'none';
-                progressContainer.style.display = 'none';
-
-            } catch (error) {
-                console.error('Error de procesamiento:', error);
-                statusDiv.textContent = `Error: ${error.message}`;
-            }
-        });
-
-        // Función para extraer metadatos de video
-        async function extractVideoMetadata(file) {
-            return new Promise((resolve, reject) => {
-                const video = document.createElement('video');
-                video.preload = 'metadata';
-                video.src = URL.createObjectURL(file);
-                
-                video.onloadedmetadata = function() {
-                    resolve({
-                        size: file.size,
-                        resolution: `${this.videoWidth}x${this.videoHeight}`,
-                        duration: this.duration.toFixed(2)
-                    });
-                };
-                
-                video.onerror = reject;
-            });
-        }
-
-        // Inicialización
-        function init() {
-            checkCompatibility();
-            setupDragDropEvents();
-        }
-
-        // Ejecutar inicialización
-        init();
-    </script>
 </body>
 </html>
