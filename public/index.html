@@ -28,11 +28,22 @@
     border-color: #1e90ff;
     color: #1e90ff;
   }
+  #advancedOptions {
+  border: 1px solid #ccc;
+  padding: 10px;
+  background-color: #f9f9f9;
+  border-radius: 5px;
+  }
+
+  .naranja {
+  color: orange;
+  }
+
 </style>
 </head>
 <body>
 
-<h2>SIA LAB | Video Process</h2>
+<h2><span class="naranja">SIA LABS</span> | Video Process</h2>
 
 <label>Selecciona archivos de video:
   <input type="file" id="fileInput" multiple accept="video/*" />
@@ -45,21 +56,57 @@
   <input type="number" id="bitrate" value="2000" min="100" max="10000" />
 </label>
 
+
 <label>FPS:
   <input type="number" id="fps" value="30" min="1" max="60" />
 </label>
 
-<label>Buffer size (kb):
-  <input type="number" id="buffsize" value="8192" min="1024" max="65536" />
-</label>
+
 
 <label>
   <input type="checkbox" id="keepAudio" checked /> Mantener audio
 </label>
 
-<label>Número de partes a dividir horizontalmente:
+<label>Número de partes horizontales ("1" si no desea dividir el video):
   <input type="number" id="parts" value="1" min="1" max="10" />
 </label>
+
+<label>Número de partes verticales ("1" si no desea dividir el video):
+  <input type="number" id="vparts" value="1" min="1" max="10" />
+</label>
+
+
+<button type="button" onclick="toggleAdvancedOptions()">Opciones Avanzadas</button>
+
+<div id="advancedOptions" style="display: none; margin-top: 10px;">
+
+  <label>Profile H.264:
+    <select id="h264Profile">
+      <option value="baseline">Baseline</option>
+      <option value="main">Main</option>
+      <option value="high" selected>High</option>
+    </select>
+  </label>
+
+  <label>Level H.264:
+    <select id="h264Level">
+      <option value="3.0">3.0</option>
+      <option value="3.1">3.1</option>
+      <option value="3.2">3.2</option>
+      <option value="4.0" selected>4.0</option>
+      <option value="4.1">4.1</option>
+      <option value="4.2">4.2</option>
+      <option value="5.0">5.0</option>
+      <option value="5.1">5.1</option>
+      <option value="5.2">5.2</option>
+    </select>
+  </label>
+
+  <label>Buffer size (kb):
+    <input type="number" id="buffsize" value="8192" min="1024" max="65536" />
+  </label>
+
+</div>
 
 <button id="start">Procesar Videos</button>
 
@@ -78,11 +125,15 @@
   const buffsizeInput = document.getElementById('buffsize');
   const keepAudioCheckbox = document.getElementById('keepAudio');
   const partsInput = document.getElementById('parts');
+  const vpartsInput = document.getElementById('vparts');
   const progressBar = document.getElementById('progress');
   const statusDiv = document.getElementById('status');
   const progressDetails = document.getElementById('progressDetails');
   const fileInput = document.getElementById('fileInput');
   const dropZone = document.getElementById('dropZone');
+  const profileSelect = document.getElementById('h264Profile');
+  const level = document.getElementById('h264Level').value;
+
 
   let currentFiles = [];
   let isProcessing = false;
@@ -161,66 +212,73 @@
 
   startBtn.onclick = () => processFiles();
 
-  async function processFiles() {
-    if (isProcessing) {
-      alert('Ya hay un proceso en ejecución. Espera a que termine.');
-      return;
+async function processFiles() {
+  if (isProcessing) {
+    alert('Ya hay un proceso en ejecución. Espera a que termine.');
+    return;
+  }
+  if (currentFiles.length === 0) {
+    alert('No hay archivos para procesar.');
+    return;
+  }
+
+  isProcessing = true;
+  showPopup();
+  startBtn.disabled = true;
+  setProgress(0);
+  progressDetails.innerHTML = '';
+  statusDiv.textContent = 'Cargando FFmpeg...';
+
+  ffmpegLogs = ''; // Reiniciar logs
+
+  try {
+    if (!ffmpeg.isLoaded()) {
+      await ffmpeg.load();
     }
-    if (currentFiles.length === 0) {
-      alert('No hay archivos para procesar.');
-      return;
-    }
 
-    isProcessing = true;
-    startBtn.disabled = true;
-    setProgress(0);
-    progressDetails.innerHTML = '';
-    statusDiv.textContent = 'Cargando FFmpeg...';
+    ffmpeg.setLogger(({ type, message }) => {
+      ffmpegLogs += `[${type}] ${message}\n`;
+    });
 
-    ffmpegLogs = ''; // Reiniciar logs
+    const bitrate = parseInt(bitrateInput.value, 10) || 2000;
+    const fps = parseInt(fpsInput.value, 10) || 30;
+    const buffsize = parseInt(buffsizeInput.value, 10) || 8192;
+    const keepAudio = keepAudioCheckbox.checked;
+    const parts = Math.max(1, parseInt(partsInput.value, 10) || 1);
+    const vparts = Math.max(1, parseInt(vpartsInput.value, 10) || 1);
 
-    try {
-      if (!ffmpeg.isLoaded()) {
-        await ffmpeg.load();
-      }
+    let totalTasks = currentFiles.length * parts * vparts;
+    let completedTasks = 0;
 
-      // Capturar logs de ffmpeg y guardarlos en ffmpegLogs
-      ffmpeg.setLogger(({ type, message }) => {
-        ffmpegLogs += `[${type}] ${message}\n`;
-      });
+    for (let fileIndex = 0; fileIndex < currentFiles.length; fileIndex++) {
+      const file = currentFiles[fileIndex];
 
-      const bitrate = parseInt(bitrateInput.value, 10) || 2000;
-      const fps = parseInt(fpsInput.value, 10) || 30;
-      const buffsize = parseInt(buffsizeInput.value, 10) || 8192;
-      const keepAudio = keepAudioCheckbox.checked;
-      const parts = Math.max(1, parseInt(partsInput.value, 10) || 1);
+      const { width, height } = await getVideoDimensions(file);
+      const cropWidth = Math.floor(width / parts);
+      const cropHeight = Math.floor(height / vparts);
 
-      let totalTasks = currentFiles.length * parts;
-      let completedTasks = 0;
+      try { ffmpeg.FS('unlink', 'input.mp4'); } catch {}
 
-      for (let fileIndex = 0; fileIndex < currentFiles.length; fileIndex++) {
-        const file = currentFiles[fileIndex];
+      ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(file));
 
-        const { width, height } = await getVideoDimensions(file);
-        const cropWidth = Math.floor(width / parts);
-        const cropHeight = height;
+      for (let i = 0; i < parts; i++) {
+        const offsetX = i * cropWidth;
 
-        try { ffmpeg.FS('unlink', 'input.mp4'); } catch {}
+        for (let j = 0; j < vparts; j++) {
+          const offsetY = j * cropHeight;
+          const currentCropHeight = cropHeight;
+          const outputName = `output_part_h${i + 1}_v${j + 1}.mp4`;
+          const cropFilter = `crop=${cropWidth}:${currentCropHeight}:${offsetX}:${offsetY}`;
 
-        ffmpeg.FS('writeFile', 'input.mp4', await fetchFile(file));
-
-        for (let i = 0; i < parts; i++) {
-          const offsetX = i * cropWidth;
-          const outputName = `output_part${i + 1}.mp4`;
-
-          const cropFilter = `crop=${cropWidth}:${cropHeight}:${offsetX}:0`;
+          const profile = profileSelect.value;
+          const level = document.getElementById('h264Level').value;
 
           let args = [
             '-i', 'input.mp4',
             '-filter:v', cropFilter,
             '-c:v', 'libx264',
-            '-profile:v', 'high',
-            '-level', '4.0',
+            '-profile:v', profile,
+            '-level', level,
             '-b:v', `${bitrate}k`,
             '-r', fps.toString(),
             '-bufsize', `${buffsize}k`
@@ -248,42 +306,84 @@
 
           const a = document.createElement('a');
           a.href = url;
-          a.download = `procesado_parte${i + 1}_${file.name}`;
-          a.textContent = `Descargar parte ${i + 1} de ${file.name}`;
+
+          const dotIndex = file.name.lastIndexOf('.');
+          const baseName = file.name.substring(0, dotIndex);
+          const extension = file.name.substring(dotIndex);
+          
+          if (parts === 1 && vparts === 1) {
+            a.download = `${baseName}_Reencoded${extension}`;
+            a.textContent = `Descargar ${baseName}_Reencoded${extension}`;
+          } else {
+            a.download = `Reencoded_parte_H${i + 1}_V${j + 1}_${file.name}`;
+            a.textContent = `Descargar parte Horizontal${i + 1} Vertical${j + 1} de ${baseName}_Reencoded${extension}`;
+          }
+
           progressDetails.appendChild(a);
 
           try { ffmpeg.FS('unlink', outputName); } catch {}
 
           completedTasks++;
         }
-
-        try { ffmpeg.FS('unlink', 'input.mp4'); } catch {}
       }
 
-      setProgress(100);
-      statusDiv.textContent = 'Procesamiento completado.';
-
-      // Crear enlace para descargar logs en txt
-      const logBlob = new Blob([ffmpegLogs], { type: 'text/plain' });
-      const logUrl = URL.createObjectURL(logBlob);
-      const logLink = document.createElement('a');
-      logLink.href = logUrl;
-      logLink.download = 'ffmpeg_logs.txt';
-      logLink.textContent = 'Descargar registro completo de consola (logs)';
-      logLink.style.display = 'block';
-      logLink.style.marginTop = '15px';
-      progressDetails.appendChild(logLink);
-
-    } catch (err) {
-      console.error(err);
-      statusDiv.textContent = 'Error durante el procesamiento: ' + err.message;
-    } finally {
-      startBtn.disabled = false;
-      ffmpeg.setProgress(() => {});
-      isProcessing = false;
+      try { ffmpeg.FS('unlink', 'input.mp4'); } catch {}
     }
+
+    setProgress(100);
+    statusDiv.textContent = 'Procesamiento completado.';
+
+    const logBlob = new Blob([ffmpegLogs], { type: 'text/plain' });
+    const logUrl = URL.createObjectURL(logBlob);
+    const logLink = document.createElement('a');
+    logLink.href = logUrl;
+    logLink.download = 'ffmpeg_logs.txt';
+    logLink.textContent = 'Descargar registro completo de consola (logs)';
+    logLink.style.display = 'block';
+    logLink.style.marginTop = '15px';
+    progressDetails.appendChild(logLink);
+
+  } catch (err) {
+    console.error(err);
+    statusDiv.textContent = 'Error durante el procesamiento: ' + err.message;
+  } finally {
+    if (!popupClosed) closePopup();
+    startBtn.disabled = false;
+    ffmpeg.setProgress(() => {});
+    isProcessing = false;
   }
+}
+
+
+
+  let popupClosed = false;
+
+  function showPopup() {
+    document.getElementById('popupOverlay').style.display = 'block';
+    popupClosed = false;
+  }
+
+  function closePopup() {
+    document.getElementById('popupOverlay').style.display = 'none';
+    popupClosed = true;
+  }
+
+
+  function toggleAdvancedOptions() {
+  const section = document.getElementById('advancedOptions');
+  section.style.display = section.style.display === 'none' ? 'block' : 'none';
+  }
+
 </script>
+
+<!-- Pop-up de advertencia -->
+<div id="popupOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:9999;">
+  <div style="background:white; padding:20px; border-radius:8px; max-width:400px; margin:100px auto; text-align:center; box-shadow:0 0 15px rgba(0,0,0,0.3);">
+    <p><strong>IMPORTANTE:</strong><br>No cierres esta pestaña o ventana hasta que finalice el procesamiento del video, ya que si lo haces se perderá lo realizado y deberás iniciar nuevamente (esta advertencia sí podés cerrarla presionando "Aceptar").</p>
+    <button onclick="closePopup()">Aceptar</button>
+  </div>
+</div>
+
 
 </body>
 </html>
