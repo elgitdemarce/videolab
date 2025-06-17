@@ -219,11 +219,7 @@ function drawThumbnailWithGrid(file, parts = 1, vparts = 1) {
       // Generar miniatura del primer video seleccionado
       const parts = parseInt(partsInput.value, 10) || 1;
       const vparts = parseInt(vpartsInput.value, 10) || 1;
-      
-
-      currentFiles.forEach(file => {
-        drawThumbnailWithGrid(file, parts, vparts);
-      }
+      drawThumbnailWithGrid(currentFiles[0], parts, vparts);
     }
   
   });
