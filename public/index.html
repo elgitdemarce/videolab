@@ -110,16 +110,16 @@
 
 <!-- Ajustar resoluciones de salida -->
 <label>Resolución de salida - Ancho (px):
-  <input type="number" id="outputWidth" value="1080" min="1" max="1920" />
+  <input type="number" id="outputWidth" value="1920" min="1" max="1920" />
 </label>
 
 <label>Resolución de salida - Alto (px):
-  <input type="number" id="outputHeight" value="1920" min="1" max="1920" />
+  <input type="number" id="outputHeight" value="1080" min="1" max="1920" />
 </label>
 <!-- Fin ajustes de resolucion -->
 
 <div id="thumbnailContainer" style="margin-top: 20px;">
-  <h4>Miniatura con divisiones:</h4>
+  <h4>Preview a Exportar:</h4>
   <canvas id="thumbnailCanvas" width="480" height="270" style="border:1px solid #ccc;"></canvas>
 </div>
 
@@ -163,7 +163,7 @@ function drawThumbnailWithGrid(file, parts = 1, vparts = 1) {
   video.preload = 'metadata';
   video.src = URL.createObjectURL(file);
   video.muted = true;
-  video.currentTime = 1; // Tomar miniatura en segundo 1
+  video.currentTime = 3; // Tomar miniatura en segundo 3
 
   video.onloadeddata = () => {
     const scale = Math.min(canvas.width / video.videoWidth, canvas.height / video.videoHeight);
@@ -174,7 +174,7 @@ function drawThumbnailWithGrid(file, parts = 1, vparts = 1) {
 
     // Dibujar líneas de división
     ctx.strokeStyle = 'red';
-    ctx.lineWidth = 1;
+    ctx.lineWidth = 1.5;
 
     const partWidth = drawWidth / parts;
     const partHeight = drawHeight / vparts;
