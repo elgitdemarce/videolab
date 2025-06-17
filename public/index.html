@@ -108,6 +108,22 @@
 
 </div>
 
+<!-- Ajustar resoluciones de salida -->
+<label>Resolución de salida - Ancho (px):
+  <input type="number" id="outputWidth" value="1080" min="1" max="1920" />
+</label>
+
+<label>Resolución de salida - Alto (px):
+  <input type="number" id="outputHeight" value="1920" min="1" max="1920" />
+</label>
+<!-- Fin ajustes de resolucion -->
+
+<div id="thumbnailContainer" style="margin-top: 20px;">
+  <h4>Miniatura con divisiones:</h4>
+  <canvas id="thumbnailCanvas" width="480" height="270" style="border:1px solid #ccc;"></canvas>
+</div>
+
+  
 <button id="start">Procesar Videos</button>
 
 <progress id="progress" value="0" max="100"></progress>
@@ -134,8 +150,59 @@
   const profileSelect = document.getElementById('h264Profile');
   const level = document.getElementById('h264Level').value;
 
+  const outputWidthInput = document.getElementById('outputWidth');
+  const outputHeightInput = document.getElementById('outputHeight');
 
   let currentFiles = [];
+
+  const canvas = document.getElementById('thumbnailCanvas');
+const ctx = canvas.getContext('2d');
+
+function drawThumbnailWithGrid(file, parts = 1, vparts = 1) {
+  const video = document.createElement('video');
+  video.preload = 'metadata';
+  video.src = URL.createObjectURL(file);
+  video.muted = true;
+  video.currentTime = 1; // Tomar miniatura en segundo 1
+
+  video.onloadeddata = () => {
+    const scale = Math.min(canvas.width / video.videoWidth, canvas.height / video.videoHeight);
+    const drawWidth = video.videoWidth * scale;
+    const drawHeight = video.videoHeight * scale;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(video, 0, 0, drawWidth, drawHeight);
+
+    // Dibujar líneas de división
+    ctx.strokeStyle = 'red';
+    ctx.lineWidth = 1;
+
+    const partWidth = drawWidth / parts;
+    const partHeight = drawHeight / vparts;
+
+    // Líneas verticales
+    for (let i = 1; i < parts; i++) {
+      const x = i * partWidth;
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, drawHeight);
+      ctx.stroke();
+    }
+
+    // Líneas horizontales
+    for (let j = 1; j < vparts; j++) {
+      const y = j * partHeight;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(drawWidth, y);
+      ctx.stroke();
+    }
+
+    URL.revokeObjectURL(video.src);
+  };
+}
+
+
+  
   let isProcessing = false;
 
   // Variable para almacenar los logs de consola
@@ -144,6 +211,17 @@
   // Actualizar currentFiles al seleccionar archivos con el input
   fileInput.addEventListener('change', () => {
     currentFiles = Array.from(fileInput.files);
+    
+    if (currentFiles.length > 0) {
+      // Mostrar el nombre de los archivos seleccionados
+      statusDiv.textContent = `${currentFiles.length} archivo(s) listo(s) para procesar: ${currentFiles.map(f => f.name).join(', ')}`;
+
+      // Generar miniatura del primer video seleccionado
+      const parts = parseInt(partsInput.value, 10) || 1;
+      const vparts = parseInt(vpartsInput.value, 10) || 1;
+      drawThumbnailWithGrid(currentFiles[0], parts, vparts);
+    }
+  
   });
 
   // Función para añadir archivos desde drop (sin duplicados)
@@ -154,6 +232,21 @@
       }
     }
   }
+
+// Funcion para validar la resolucion de los videos
+function validateResolution(widthInput, heightInput) {
+  // Validar que sean enteros positivos (sin decimales, sin negativos, sin NaN)
+  if (!Number.isInteger(widthInput) || !Number.isInteger(heightInput)) {
+    alert('Por favor ingresa valores enteros para la resolución.');
+    return null;
+  }
+  if (widthInput <= 0 || heightInput <= 0) {
+    alert('Los valores de resolución deben ser mayores que 0.');
+    return null;
+  }
+  return { width: widthInput, height: heightInput };
+}
+//--Fin Validacion de resolucion--//
 
   // Drag & Drop listeners
   dropZone.addEventListener('dragenter', (e) => {
@@ -268,14 +361,34 @@ async function processFiles() {
           const offsetY = j * cropHeight;
           const currentCropHeight = cropHeight;
           const outputName = `output_part_h${i + 1}_v${j + 1}.mp4`;
+
+          //--Modificacion: Resolucion y salida del filtro
+          const rawOutputWidth = parseInt(outputWidthInput.value, 10);
+          const rawOutputHeight = parseInt(outputHeightInput.value, 10);
+          
+          const validatedRes = validateResolution(rawOutputWidth, rawOutputHeight, width, height);
+          if (!validatedRes) {
+            alert(`Resolución no válida para el archivo ${file.name}, se omitirá.`);
+            continue; // Manejo de error
+          }
+          
+          const outputWidth = validatedRes.width;
+          const outputHeight = validatedRes.height;
+          
+          const scaleFilter = `scale=${outputWidth}:${outputHeight}`;
           const cropFilter = `crop=${cropWidth}:${currentCropHeight}:${offsetX}:${offsetY}`;
+          
+          // Cortar y redimensionar
+          const filterComplex = `${cropFilter},${scaleFilter}`;
+
+          //---Fin---//
 
           const profile = profileSelect.value;
           const level = document.getElementById('h264Level').value;
 
           let args = [
             '-i', 'input.mp4',
-            '-filter:v', cropFilter,
+            '-filter:v', filterComplex,//Cambiar cropFilter
             '-c:v', 'libx264',
             '-profile:v', profile,
             '-level', level,
