@@ -282,7 +282,14 @@ function validateResolution(widthInput, heightInput) {
       }
       addFiles(droppedFiles);
       statusDiv.textContent = `${currentFiles.length} archivo(s) listo(s) para procesar: ${currentFiles.map(f => f.name).join(', ')}`;
-            
+
+
+      // ✅ Agregamos la generación automática de miniatura con grilla
+      if (currentFiles.length > 0) {
+        const parts = parseInt(partsInput.value, 10) || 1;
+        const vparts = parseInt(vpartsInput.value, 10) || 1;
+        drawThumbnailWithGrid(currentFiles[0], parts, vparts);
+      }
     }
   });
 
