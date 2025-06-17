@@ -220,10 +220,10 @@ function drawThumbnailWithGrid(file, parts = 1, vparts = 1) {
       const parts = parseInt(partsInput.value, 10) || 1;
       const vparts = parseInt(vpartsInput.value, 10) || 1;
       
-      // Limpiar miniaturas anteriores
-      thumbnailsContainer.innerHTML = '';
+
       currentFiles.forEach(file => {
         drawThumbnailWithGrid(file, parts, vparts);
+      }
     }
   
   });
