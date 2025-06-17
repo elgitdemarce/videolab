@@ -495,6 +495,24 @@ async function processFiles() {
   section.style.display = section.style.display === 'none' ? 'block' : 'none';
   }
 
+partsInput.addEventListener('input', () => {
+  if (currentFiles.length > 0) {
+    const parts = parseInt(partsInput.value, 10) || 1;
+    const vparts = parseInt(vpartsInput.value, 10) || 1;
+    drawThumbnailWithGrid(currentFiles[0], parts, vparts);
+  }
+});
+
+vpartsInput.addEventListener('input', () => {
+  if (currentFiles.length > 0) {
+    const parts = parseInt(partsInput.value, 10) || 1;
+    const vparts = parseInt(vpartsInput.value, 10) || 1;
+    drawThumbnailWithGrid(currentFiles[0], parts, vparts);
+  }
+});
+
+
+  
 </script>
 
 <!-- Pop-up de advertencia -->
