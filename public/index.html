@@ -517,6 +517,7 @@ async function processFiles() {
 
 partsInput.addEventListener('input', () => {
   if (currentFiles.length > 0) {
+    document.getElementById('thumbnailContainer').innerHTML = ''; // Limpia las miniaturas previas
     const parts = parseInt(partsInput.value, 10) || 1;
     const vparts = parseInt(vpartsInput.value, 10) || 1;
     currentFiles.forEach(file => {
@@ -527,6 +528,7 @@ partsInput.addEventListener('input', () => {
 
 vpartsInput.addEventListener('input', () => {
   if (currentFiles.length > 0) {
+    document.getElementById('thumbnailContainer').innerHTML = ''; // Limpia las miniaturas previas
     const parts = parseInt(partsInput.value, 10) || 1;
     const vparts = parseInt(vpartsInput.value, 10) || 1;
     currentFiles.forEach(file => {
