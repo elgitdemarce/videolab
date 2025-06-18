@@ -288,7 +288,9 @@ function validateResolution(widthInput, heightInput) {
       if (currentFiles.length > 0) {
         const parts = parseInt(partsInput.value, 10) || 1;
         const vparts = parseInt(vpartsInput.value, 10) || 1;
-        drawThumbnailWithGrid(currentFiles[0], parts, vparts);
+        currentFiles.forEach(file => {
+          drawThumbnailWithGrid(file, parts, vparts);
+        });
       }
     }
   });
