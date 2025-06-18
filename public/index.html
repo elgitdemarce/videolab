@@ -155,24 +155,32 @@
 
   let currentFiles = [];
 
-  const canvas = document.getElementById('thumbnailCanvas');
-const ctx = canvas.getContext('2d');
+
 
 function drawThumbnailWithGrid(file, parts = 1, vparts = 1) {
   const video = document.createElement('video');
   video.preload = 'metadata';
   video.src = URL.createObjectURL(file);
   video.muted = true;
-  video.currentTime = 3; // Tomar miniatura en segundo 3
+  video.currentTime = 3; // Tomar miniatura en el segundo 3
 
   video.onloadeddata = () => {
+    // Crear un canvas independiente por video
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    // Definir dimensiones deseadas del canvas
+    canvas.width = 480;
+    canvas.height = 270;
+
     const scale = Math.min(canvas.width / video.videoWidth, canvas.height / video.videoHeight);
     const drawWidth = video.videoWidth * scale;
     const drawHeight = video.videoHeight * scale;
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(video, 0, 0, drawWidth, drawHeight);
 
-    // Dibujar líneas de división
+    // Dibujar grilla
     ctx.strokeStyle = 'red';
     ctx.lineWidth = 1.5;
 
@@ -198,6 +206,14 @@ function drawThumbnailWithGrid(file, parts = 1, vparts = 1) {
     }
 
     URL.revokeObjectURL(video.src);
+
+    // Mostrar resultado en pantalla
+    const container = document.getElementById('thumbnailCanvas');
+    const label = document.createElement('p');
+    label.textContent = `Miniatura de: ${file.name}`;
+    label.style.margin = '8px 0 4px';
+    container.appendChild(label);
+    container.appendChild(canvas);
   };
 }
 
@@ -288,7 +304,9 @@ function validateResolution(widthInput, heightInput) {
       if (currentFiles.length > 0) {
         const parts = parseInt(partsInput.value, 10) || 1;
         const vparts = parseInt(vpartsInput.value, 10) || 1;
-        drawThumbnailWithGrid(currentFiles[0], parts, vparts);
+        currentFiles.forEach(file => {
+          drawThumbnailWithGrid(file, parts, vparts);
+        });
       }
     }
   });
@@ -499,7 +517,9 @@ partsInput.addEventListener('input', () => {
   if (currentFiles.length > 0) {
     const parts = parseInt(partsInput.value, 10) || 1;
     const vparts = parseInt(vpartsInput.value, 10) || 1;
-    drawThumbnailWithGrid(currentFiles[0], parts, vparts);
+    currentFiles.forEach(file => {
+      drawThumbnailWithGrid(file, parts, vparts);
+    });
   }
 });
 
@@ -507,7 +527,9 @@ vpartsInput.addEventListener('input', () => {
   if (currentFiles.length > 0) {
     const parts = parseInt(partsInput.value, 10) || 1;
     const vparts = parseInt(vpartsInput.value, 10) || 1;
-    drawThumbnailWithGrid(currentFiles[0], parts, vparts);
+    currentFiles.forEach(file => {
+      drawThumbnailWithGrid(file, parts, vparts);
+    });
   }
 });
 
