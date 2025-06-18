@@ -208,7 +208,7 @@ function drawThumbnailWithGrid(file, parts = 1, vparts = 1) {
     URL.revokeObjectURL(video.src);
 
     // Mostrar resultado en pantalla
-    const container = document.getElementById('thumbnailCanvas');
+    const container = document.getElementById('thumbnailContainer');
     const label = document.createElement('p');
     label.textContent = `Miniatura de: ${file.name}`;
     label.style.margin = '8px 0 4px';
