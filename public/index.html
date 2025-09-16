@@ -270,19 +270,17 @@
   </script>
 </section>
 
-<div id="thumbnailContainer" style="margin-top: 20px;">
+
+<div style="margin-top: 20px;">
   <h4>Preview a Exportar:</h4>
-  
+  <div id="processControls" style="margin-bottom: 16px;">
+    <button id="start">Procesar Videos</button>
+    <progress id="progress" value="0" max="100" style="vertical-align: middle;"></progress>
+    <div id="status" style="margin-top: 8px;"></div>
+    <div id="progressDetails"></div>
+  </div>
+  <div id="thumbnailContainer"></div>
 </div>
-
-  
-<button id="start">Procesar Videos</button>
-
-<progress id="progress" value="0" max="100"></progress>
-
-<div id="status"></div>
-
-<div id="progressDetails"></div>
 
 <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.10.1/dist/ffmpeg.min.js"></script>
 <script>
@@ -383,6 +381,8 @@ function drawThumbnailWithGrid(file, parts = 1, vparts = 1) {
         statusDiv.textContent = `${window.currentFiles.length} archivo(s) listo(s) para procesar: ${window.currentFiles.map(f => f.name).join(', ')}`;
         const parts = parseInt(partsInput.value, 10) || 1;
         const vparts = parseInt(vpartsInput.value, 10) || 1;
+        // Limpiar solo las miniaturas, no los controles
+        document.getElementById('thumbnailContainer').innerHTML = '';
         window.currentFiles.forEach(file => {
           drawThumbnailWithGrid(file, parts, vparts);
         });
@@ -447,8 +447,8 @@ function validateResolution(widthInput, heightInput) {
         }
         // Limpiar el input file para evitar confusión visual
         fileInput.value = '';
-        // Limpiar miniaturas previas
-        document.getElementById('thumbnailContainer').innerHTML = '<h4>Preview a Exportar:</h4>';
+  // Limpiar solo las miniaturas previas
+  document.getElementById('thumbnailContainer').innerHTML = '';
         // window.currentFiles debe ser SIEMPRE un array real de File
         window.currentFiles = droppedFiles;
         statusDiv.textContent = `${window.currentFiles.length} archivo(s) listo(s) para procesar: ${window.currentFiles.map(f => f.name).join(', ')}`;
