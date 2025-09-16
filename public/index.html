@@ -118,6 +118,158 @@
 </label>
 <!-- Fin ajustes de resolucion -->
 
+
+<!-- SECCIÓN MEDIAINFO: Mover arriba de Preview a Exportar -->
+<section id="mediainfo-section">
+  <h4 style="color:rgb(85, 83, 78);">Valores previos de archivo(s) seleccionados(s):</h4>
+  <button id="analyzeMediaInfoBtn" type="button">Ver valores previos</button>
+  <button id="hideMediaInfoBtn" type="button" style="display:none; margin-left:8px;">Ocultar valores</button>
+  <div id="mediaInfoResult"></div>
+  <script src="https://cdn.jsdelivr.net/npm/mediainfo.js@0.3.6/dist/umd/index.min.js"></script>
+  <style>
+    #mediaInfoResult table {
+      border-collapse: collapse;
+      table-layout: auto;
+      margin-top: 1em;
+      max-width: 100%;
+    }
+    #mediaInfoResult th, #mediaInfoResult td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    #mediaInfoResult th { background: #f0f0f0; }
+    #mediaInfoResult .highlight-field {
+      background: rgba(0, 17, 255, 0.15);
+      color: #a00;
+    }
+  </style>
+  <script>
+    const analyzeBtn = document.getElementById('analyzeMediaInfoBtn');
+    const hideBtn = document.getElementById('hideMediaInfoBtn');
+
+    analyzeBtn.addEventListener('click', function() {
+      // Usar solo window.currentFiles como fuente de archivos
+      const files = (window.currentFiles && Array.isArray(window.currentFiles)) ? window.currentFiles : [];
+      if (!files || files.length === 0) {
+        document.getElementById('mediaInfoResult').innerHTML = 'Selecciona uno o más archivos de video arriba.';
+        return;
+      }
+      document.getElementById('mediaInfoResult').innerHTML = 'Procesando...';
+      analyzeBtn.style.display = 'none';
+      hideBtn.style.display = '';
+      window.MediaInfo.default({ format: 'object' }).then(mediaInfo => {
+        let allResults = '';
+        const processFile = (file, idx, total) => {
+          return new Promise((resolve) => {
+            const getSize = () => file.size;
+            const readChunk = (chunkSize, offset) => new Promise((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = (e) => resolve(new Uint8Array(e.target.result));
+              reader.onerror = reject;
+              reader.readAsArrayBuffer(file.slice(offset, offset + chunkSize));
+            });
+            mediaInfo.analyzeData(getSize, readChunk).then(info => {
+              if (info && info.media && info.media.track) {
+                let html = `<h4 style='margin-top:2em;'>${file.name}</h4>`;
+                html += '<table><thead><tr><th>Tipo</th><th>Parámetro</th><th>Valor</th></tr></thead><tbody>';
+                // Recolectar todas las filas de todos los tracks
+                const highlightRows = [];
+                const normalRows = [];
+                info.media.track.forEach(track => {
+                  const trackType = track['@type'] || '';
+                  Object.entries(track).forEach(([key, value]) => {
+                    if (key !== '@type') {
+
+                      const highlightFields = [
+                        'FrameRate', 'Format_Profile', 'Format_Level', 'CodecID',
+                        'BitRate', 'Width', 'Height', 'Duration', 'FileSize', 'Encoded_Library'
+                      ];
+                      // Resaltar CodecID solo si el tipo NO es General
+                      let isHighlight = false;
+                      if (key.toLowerCase() === 'codecid') {
+                        isHighlight = trackType.toLowerCase() !== 'audio' && trackType.toLowerCase() !== 'general';
+                      } else {
+                        isHighlight = highlightFields.some(f => key.toLowerCase() === f.toLowerCase()) && trackType.toLowerCase() !== 'audio';
+                      }
+
+                      const mbFields = ['FileSize', 'OverallBitRate', 'BitRate', 'StreamSize'];
+                      let rowHtml = '';
+                      // Si el parámetro es Format_Profile y el tipo es General, mostrar General_Format
+                      // Si el parámetro es FrameRate y el tipo es Video, mostrar FPS
+                      let paramLabel = key;
+                      if (key === 'Format_Profile' && trackType.toLowerCase() === 'general') {
+                        paramLabel = 'General_Format';
+                      } else if (key === 'FrameRate' && trackType.toLowerCase() === 'video') {
+                        paramLabel = 'FPS';
+                      }
+                      if (mbFields.some(f => key.toLowerCase().includes(f.toLowerCase())) && !isNaN(value)) {
+                        const mb = (parseFloat(value) / (1024 * 1024)).toFixed(2);
+                        rowHtml = `<tr><td>${trackType}</td><td class="${isHighlight ? 'highlight-field' : ''}">${paramLabel}</td><td class="${isHighlight ? 'highlight-field' : ''}">${mb} MB</td></tr>`;
+                      } else if ((key.toLowerCase() === 'width' || key.toLowerCase() === 'height') && !isNaN(value)) {
+                        rowHtml = `<tr><td>${trackType}</td><td class="${isHighlight ? 'highlight-field' : ''}">${paramLabel}</td><td class="${isHighlight ? 'highlight-field' : ''}">${value} píxeles</td></tr>`;
+                      } else if (key.toLowerCase() === 'duration' && !isNaN(value)) {
+                        let totalSeconds = parseFloat(value);
+                        if (totalSeconds > 10000) totalSeconds = totalSeconds / 1000;
+                        const min = Math.floor(totalSeconds / 60);
+                        const sec = Math.round(totalSeconds % 60);
+                        rowHtml = `<tr><td>${trackType}</td><td class="${isHighlight ? 'highlight-field' : ''}">${paramLabel}</td><td class="${isHighlight ? 'highlight-field' : ''}">${min} min ${sec} s</td></tr>`;
+                      } else if (key.toLowerCase() === 'bitdepth' && !isNaN(value)) {
+                        rowHtml = `<tr><td>${trackType}</td><td>${paramLabel}</td><td>${value} bits</td></tr>`;
+                      } else {
+                        rowHtml = `<tr><td>${trackType}</td><td class="${isHighlight ? 'highlight-field' : ''}">${paramLabel}</td><td class="${isHighlight ? 'highlight-field' : ''}">${value}</td></tr>`;
+                      }
+                      if (isHighlight) {
+                        highlightRows.push({ rowHtml, trackType });
+                      } else {
+                        normalRows.push({ rowHtml, trackType });
+                      }
+                    }
+                  });
+                });
+                // Primero todas las filas resaltadas, luego las normales ordenadas por Tipo personalizado
+                html += highlightRows.map(r => r.rowHtml).join('');
+                const typeOrder = { 'general': 0, 'video': 1, 'audio': 2 };
+                normalRows.sort((a, b) => {
+                  const aType = (a.trackType || '').toLowerCase();
+                  const bType = (b.trackType || '').toLowerCase();
+                  const aOrder = typeOrder.hasOwnProperty(aType) ? typeOrder[aType] : 99;
+                  const bOrder = typeOrder.hasOwnProperty(bType) ? typeOrder[bType] : 99;
+                  if (aOrder !== bOrder) return aOrder - bOrder;
+                  return aType.localeCompare(bType);
+                });
+                html += normalRows.map(r => r.rowHtml).join('');
+                html += '</tbody></table>';
+                allResults += html;
+                resolve();
+              } else {
+                allResults += `<h4 style='margin-top:2em;'>${file.name}</h4>No se pudo obtener información.`;
+                resolve();
+              }
+            }).catch(e => {
+              allResults += `<h4 style='margin-top:2em;'>${file.name}</h4>Error al analizar el archivo.`;
+              console.error(e);
+              resolve();
+            });
+          });
+        };
+        // Procesar todos los archivos en serie
+        (async () => {
+          for (let i = 0; i < files.length; i++) {
+            await processFile(files[i], i, files.length);
+          }
+          document.getElementById('mediaInfoResult').innerHTML = allResults;
+        })();
+      }).catch(e => {
+        document.getElementById('mediaInfoResult').innerHTML = 'Error al inicializar MediaInfo.';
+        console.error(e);
+      });
+    });
+
+    hideBtn.addEventListener('click', function() {
+      document.getElementById('mediaInfoResult').innerHTML = '';
+      hideBtn.style.display = 'none';
+      analyzeBtn.style.display = '';
+    });
+  </script>
+</section>
+
 <div id="thumbnailContainer" style="margin-top: 20px;">
   <h4>Preview a Exportar:</h4>
   
@@ -153,7 +305,7 @@
   const outputWidthInput = document.getElementById('outputWidth');
   const outputHeightInput = document.getElementById('outputHeight');
 
-  let currentFiles = [];
+  window.currentFiles = [];
 
 
 
@@ -226,30 +378,25 @@ function drawThumbnailWithGrid(file, parts = 1, vparts = 1) {
 
   // Actualizar currentFiles al seleccionar archivos con el input
   fileInput.addEventListener('change', () => {
-    currentFiles = Array.from(fileInput.files);
-    
-    if (currentFiles.length > 0) {
-      // Mostrar el nombre de los archivos seleccionados
-      statusDiv.textContent = `${currentFiles.length} archivo(s) listo(s) para procesar: ${currentFiles.map(f => f.name).join(', ')}`;
-
-      // Generar miniatura del primer video seleccionado
-      const parts = parseInt(partsInput.value, 10) || 1;
-      const vparts = parseInt(vpartsInput.value, 10) || 1;
-      currentFiles.forEach(file => {
-        drawThumbnailWithGrid(file, parts, vparts);
-      });
-    }
-  
-  });
+      window.currentFiles = Array.from(fileInput.files);
+      if (window.currentFiles.length > 0) {
+        statusDiv.textContent = `${window.currentFiles.length} archivo(s) listo(s) para procesar: ${window.currentFiles.map(f => f.name).join(', ')}`;
+        const parts = parseInt(partsInput.value, 10) || 1;
+        const vparts = parseInt(vpartsInput.value, 10) || 1;
+        window.currentFiles.forEach(file => {
+          drawThumbnailWithGrid(file, parts, vparts);
+        });
+      }
+    });
 
   // Función para añadir archivos desde drop (sin duplicados)
   function addFiles(newFiles) {
-    for (const file of newFiles) {
-      if (!currentFiles.some(f => f.name === file.name && f.size === file.size && f.lastModified === file.lastModified)) {
-        currentFiles.push(file);
+      for (const file of newFiles) {
+        if (!window.currentFiles.some(f => f.name === file.name && f.size === file.size && f.lastModified === file.lastModified)) {
+          window.currentFiles.push(file);
+        }
       }
     }
-  }
 
 // Funcion para validar la resolucion de los videos
 function validateResolution(widthInput, heightInput) {
@@ -288,30 +435,33 @@ function validateResolution(widthInput, heightInput) {
   });
 
   dropZone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    dropZone.classList.remove('dragover');
+      e.preventDefault();
+      e.stopPropagation();
+      dropZone.classList.remove('dragover');
 
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      const droppedFiles = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('video/'));
-      if (droppedFiles.length === 0) {
-        alert('Solo se permiten archivos de video.');
-        return;
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        const droppedFiles = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('video/'));
+        if (droppedFiles.length === 0) {
+          alert('Solo se permiten archivos de video.');
+          return;
+        }
+        // Limpiar el input file para evitar confusión visual
+        fileInput.value = '';
+        // Limpiar miniaturas previas
+        document.getElementById('thumbnailContainer').innerHTML = '<h4>Preview a Exportar:</h4>';
+        // window.currentFiles debe ser SIEMPRE un array real de File
+        window.currentFiles = droppedFiles;
+        statusDiv.textContent = `${window.currentFiles.length} archivo(s) listo(s) para procesar: ${window.currentFiles.map(f => f.name).join(', ')}`;
+        // Generar miniaturas
+        if (window.currentFiles.length > 0) {
+          const parts = parseInt(partsInput.value, 10) || 1;
+          const vparts = parseInt(vpartsInput.value, 10) || 1;
+          window.currentFiles.forEach(file => {
+            drawThumbnailWithGrid(file, parts, vparts);
+          });
+        }
       }
-      addFiles(droppedFiles);
-      statusDiv.textContent = `${currentFiles.length} archivo(s) listo(s) para procesar: ${currentFiles.map(f => f.name).join(', ')}`;
-
-
-      // ✅ Agregamos la generación automática de miniatura con grilla
-      if (currentFiles.length > 0) {
-        const parts = parseInt(partsInput.value, 10) || 1;
-        const vparts = parseInt(vpartsInput.value, 10) || 1;
-        currentFiles.forEach(file => {
-          drawThumbnailWithGrid(file, parts, vparts);
-        });
-      }
-    }
-  });
+    });
 
   const ffmpeg = createFFmpeg({ log: true });
 
@@ -338,7 +488,7 @@ async function processFiles() {
     alert('Ya hay un proceso en ejecución. Espera a que termine.');
     return;
   }
-  if (currentFiles.length === 0) {
+  if (window.currentFiles.length === 0) {
     alert('No hay archivos para procesar.');
     return;
   }
@@ -368,11 +518,11 @@ async function processFiles() {
     const parts = Math.max(1, parseInt(partsInput.value, 10) || 1);
     const vparts = Math.max(1, parseInt(vpartsInput.value, 10) || 1);
 
-    let totalTasks = currentFiles.length * parts * vparts;
+  let totalTasks = window.currentFiles.length * parts * vparts;
     let completedTasks = 0;
 
-    for (let fileIndex = 0; fileIndex < currentFiles.length; fileIndex++) {
-      const file = currentFiles[fileIndex];
+    for (let fileIndex = 0; fileIndex < window.currentFiles.length; fileIndex++) {
+      const file = window.currentFiles[fileIndex];
 
       const { width, height } = await getVideoDimensions(file);
       const cropWidth = Math.floor(width / parts);
@@ -516,22 +666,22 @@ async function processFiles() {
   }
 
 partsInput.addEventListener('input', () => {
-  if (currentFiles.length > 0) {
-    document.getElementById('thumbnailContainer').innerHTML = ''; // Limpia las miniaturas previas
+  if (window.currentFiles.length > 0) {
+    document.getElementById('thumbnailContainer').innerHTML = '';
     const parts = parseInt(partsInput.value, 10) || 1;
     const vparts = parseInt(vpartsInput.value, 10) || 1;
-    currentFiles.forEach(file => {
+    window.currentFiles.forEach(file => {
       drawThumbnailWithGrid(file, parts, vparts);
     });
   }
 });
 
 vpartsInput.addEventListener('input', () => {
-  if (currentFiles.length > 0) {
-    document.getElementById('thumbnailContainer').innerHTML = ''; // Limpia las miniaturas previas
+  if (window.currentFiles.length > 0) {
+    document.getElementById('thumbnailContainer').innerHTML = '';
     const parts = parseInt(partsInput.value, 10) || 1;
     const vparts = parseInt(vpartsInput.value, 10) || 1;
-    currentFiles.forEach(file => {
+    window.currentFiles.forEach(file => {
       drawThumbnailWithGrid(file, parts, vparts);
     });
   }
