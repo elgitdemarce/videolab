@@ -351,61 +351,81 @@ function drawThumbnailWithGrid(file, parts = 1, vparts = 1) {
     const rotateRight = document.getElementById('rotateRight').checked;
     const rotate180 = document.getElementById('rotate180').checked;
 
-    // Definir dimensiones deseadas del canvas
+    // Dimensiones del canvas (fijas)
     let canvasWidth = 480;
     let canvasHeight = 270;
     let videoW = video.videoWidth;
     let videoH = video.videoHeight;
+
+    // Si hay rotación 90°, intercambiar ancho y alto del video para el cálculo de escala
+    let displayW = videoW;
+    let displayH = videoH;
     let rotated = false;
-    if (rotateLeft || rotateRight) {
-      [canvasWidth, canvasHeight] = [canvasHeight, canvasWidth];
+    let rotation = 0;
+    if (rotateLeft) {
       rotated = true;
+      rotation = -90;
+      [displayW, displayH] = [videoH, videoW];
+    } else if (rotateRight) {
+      rotated = true;
+      rotation = 90;
+      [displayW, displayH] = [videoH, videoW];
+    } else if (rotate180) {
+      rotated = false;
+      rotation = 180;
     }
-    // Calcular escala para que el video rotado ocupe todo el canvas sin deformarse
-    let scale = rotated
-      ? Math.min(canvasWidth / videoH, canvasHeight / videoW)
-      : Math.min(canvasWidth / videoW, canvasHeight / videoH);
+
+    // Calcular escala para que el video (rotado) ocupe todo el canvas sin deformarse
+    let scale = Math.min(canvasWidth / displayW, canvasHeight / displayH);
+
+    // Calcular tamaño final del video en el canvas
+    let drawW = displayW * scale;
+    let drawH = displayH * scale;
+
+    // Calcular offset para centrar
+    let offsetX = (canvasWidth - drawW) / 2;
+    let offsetY = (canvasHeight - drawH) / 2;
+
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     canvas.width = canvasWidth;
     canvas.height = canvasHeight;
 
     ctx.save();
-    // Aplicar rotación al contexto
+    // Aplicar rotación y dibujar el video centrado
     if (rotateLeft) {
       ctx.translate(0, canvasHeight);
       ctx.rotate(-Math.PI / 2);
+      ctx.drawImage(
+        video,
+        0, 0, videoW, videoH,
+        offsetY, offsetX,
+        drawH, drawW
+      );
     } else if (rotateRight) {
       ctx.translate(canvasWidth, 0);
       ctx.rotate(Math.PI / 2);
+      ctx.drawImage(
+        video,
+        0, 0, videoW, videoH,
+        offsetY, offsetX,
+        drawH, drawW
+      );
     } else if (rotate180) {
       ctx.translate(canvasWidth, canvasHeight);
       ctx.rotate(Math.PI);
-    }
-
-    // Centrar la imagen en el canvas
-    let offsetX, offsetY;
-    if (rotated) {
-      offsetX = (canvasWidth - videoH * scale) / 2;
-      offsetY = (canvasHeight - videoW * scale) / 2;
       ctx.drawImage(
         video,
-        0, 0,
-        videoW, videoH,
+        0, 0, videoW, videoH,
         offsetX, offsetY,
-        videoH * scale,
-        videoW * scale
+        drawW, drawH
       );
     } else {
-      offsetX = (canvasWidth - videoW * scale) / 2;
-      offsetY = (canvasHeight - videoH * scale) / 2;
       ctx.drawImage(
         video,
-        0, 0,
-        videoW, videoH,
+        0, 0, videoW, videoH,
         offsetX, offsetY,
-        videoW * scale,
-        videoH * scale
+        drawW, drawH
       );
     }
     ctx.restore();
@@ -434,14 +454,14 @@ function drawThumbnailWithGrid(file, parts = 1, vparts = 1) {
 
     URL.revokeObjectURL(video.src);
 
-  // Mostrar resultado en pantalla
-  const container = document.getElementById('thumbnailContainer');
-  container.innerHTML = '';
-  const label = document.createElement('p');
-  label.textContent = `Miniatura de: ${file.name}`;
-  label.style.margin = '8px 0 4px';
-  container.appendChild(label);
-  container.appendChild(canvas);
+    // Mostrar resultado en pantalla
+    const container = document.getElementById('thumbnailContainer');
+    container.innerHTML = '';
+    const label = document.createElement('p');
+    label.textContent = `Miniatura de: ${file.name}`;
+    label.style.margin = '8px 0 4px';
+    container.appendChild(label);
+    container.appendChild(canvas);
   };
 // Actualizar miniatura al cambiar rotación
 ['rotateLeft', 'rotateRight', 'rotate180'].forEach(id => {
