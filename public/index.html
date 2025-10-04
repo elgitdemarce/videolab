@@ -106,6 +106,17 @@
     <input type="number" id="buffsize" value="8192" min="1024" max="65536" />
   </label>
 
+  <!-- Opciones de rotación dentro de opciones avanzadas -->
+  <div id="rotationOptions" style="margin-top:10px;">
+    <fieldset style="border:1px solid #ccc; padding:10px; border-radius:5px;">
+      <legend>Rotar video (opcional)</legend>
+      <label><input type="radio" name="rotateOption" id="rotateNone" value="none" checked /> No rotar</label>
+      <label><input type="radio" name="rotateOption" id="rotateLeft" value="left" /> Girar 90° a la izquierda</label>
+      <label><input type="radio" name="rotateOption" id="rotateRight" value="right" /> Girar 90° a la derecha</label>
+      <label><input type="radio" name="rotateOption" id="rotate180" value="180" /> Girar 180°</label>
+    </fieldset>
+  </div>
+
 </div>
 
 <!-- Ajustar resoluciones de salida -->
