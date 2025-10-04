@@ -366,23 +366,15 @@ function drawThumbnailWithGrid(file, parts = 1, vparts = 1) {
     ctx.save();
     // Aplicar rotación y dibujar el video centrado
     if (rotateLeft) {
-      ctx.translate(0, canvasHeight);
-      ctx.rotate(-Math.PI / 2);
-      ctx.drawImage(
-        video,
-        0, 0, videoW, videoH,
-        offsetY, offsetX,
-        drawH, drawW
-      );
-    } else if (rotateRight) {
+    // Ahora "girar a la izquierda" dibuja como derecha
       ctx.translate(canvasWidth, 0);
       ctx.rotate(Math.PI / 2);
-      ctx.drawImage(
-        video,
-        0, 0, videoW, videoH,
-        offsetY, offsetX,
-        drawH, drawW
-      );
+      ctx.drawImage(video, 0, 0, videoW, videoH, offsetY, offsetX, drawH, drawW);
+    } else if (rotateRight) {
+    // Ahora "girar a la derecha" dibuja como izquierda
+      ctx.translate(0, canvasHeight);
+      ctx.rotate(-Math.PI / 2);
+      ctx.drawImage(video, 0, 0, videoW, videoH, offsetY, offsetX, drawH, drawW);
     } else if (rotate180) {
       ctx.translate(canvasWidth, canvasHeight);
       ctx.rotate(Math.PI);
@@ -809,6 +801,7 @@ vpartsInput.addEventListener('input', () => {
 
 </body>
 </html>
+
 
 
 
