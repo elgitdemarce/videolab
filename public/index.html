@@ -671,7 +671,8 @@ async function processFiles() {
             '-level', level,
             '-b:v', `${bitrate}k`,
             '-r', fps.toString(),
-            '-bufsize', `${buffsize}k`
+            '-bufsize', `${buffsize}k`,
+            '-movflags', 'faststart' // <-- Esta línea soluciona el problema de miniaturas
           ];
 
           if (!keepAudio) {
@@ -801,6 +802,7 @@ vpartsInput.addEventListener('input', () => {
 
 </body>
 </html>
+
 
 
 
