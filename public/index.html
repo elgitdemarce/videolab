@@ -354,16 +354,19 @@ function drawThumbnailWithGrid(file, parts = 1, vparts = 1) {
     // Definir dimensiones deseadas del canvas
     let canvasWidth = 480;
     let canvasHeight = 270;
+    let drawWidth = video.videoWidth;
+    let drawHeight = video.videoHeight;
+    let scale;
+    // Si hay rotación de 90°, intercambiar ancho y alto para el aspecto
     if (rotateLeft || rotateRight) {
       [canvasWidth, canvasHeight] = [canvasHeight, canvasWidth];
+      [drawWidth, drawHeight] = [drawHeight, drawWidth];
     }
+    scale = Math.min(canvasWidth / drawWidth, canvasHeight / drawHeight);
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     canvas.width = canvasWidth;
     canvas.height = canvasHeight;
-
-    // Calcular escala para ajustar el video al canvas
-    const scale = Math.min(canvasWidth / video.videoWidth, canvasHeight / video.videoHeight);
 
     ctx.save();
     // Aplicar rotación al contexto
@@ -378,13 +381,17 @@ function drawThumbnailWithGrid(file, parts = 1, vparts = 1) {
       ctx.rotate(Math.PI);
     }
 
+    // Centrar la imagen en el canvas
+    const offsetX = (canvasWidth - drawWidth * scale) / 2;
+    const offsetY = (canvasHeight - drawHeight * scale) / 2;
+
     ctx.drawImage(
       video,
       0, 0,
       video.videoWidth, video.videoHeight,
-      0, 0,
-      video.videoWidth * scale,
-      video.videoHeight * scale
+      offsetX, offsetY,
+      drawWidth * scale,
+      drawHeight * scale
     );
     ctx.restore();
 
