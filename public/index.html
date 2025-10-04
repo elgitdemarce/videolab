@@ -53,7 +53,7 @@
 <div id="dropZone">Ó directamente arrastra y suelta tus archivos de video aquí para agregarlos</div>
 
 <label>Bitrate (kbps):
-  <input type="number" id="bitrate" value="2700" min="100" max="10000" />
+  <input type="number" id="bitrate" value="2000" min="100" max="10000" />
 </label>
 
 
@@ -309,6 +309,37 @@
 
 
 
+function suggestResolution() {
+  if (!window.currentFiles.length) return;
+  const file = window.currentFiles[0];
+  const video = document.createElement('video');
+  video.preload = 'metadata';
+  video.src = URL.createObjectURL(file);
+  video.onloadedmetadata = () => {
+    let origWidth = video.videoWidth;
+    let origHeight = video.videoHeight;
+    let hParts = parseInt(partsInput.value, 10) || 1;
+    let vParts = parseInt(vpartsInput.value, 10) || 1;
+
+    // Sugerir ancho y alto según la lógica
+    let suggestedWidth = hParts > 1 ? Math.floor(origWidth / hParts) : origWidth;
+    let suggestedHeight = vParts > 1 ? Math.floor(origHeight / vParts) : origHeight;
+
+    outputWidthInput.value = suggestedWidth;
+    outputHeightInput.value = suggestedHeight;
+
+    URL.revokeObjectURL(video.src);
+  };
+}
+
+// Ejecutar sugerencia al cambiar partes horizontales/verticales
+partsInput.addEventListener('input', suggestResolution);
+vpartsInput.addEventListener('input', suggestResolution);
+
+// Ejecutar sugerencia al seleccionar archivos
+fileInput.addEventListener('change', suggestResolution);
+
+
 function drawThumbnailWithGrid(file, parts = 1, vparts = 1) {
   const video = document.createElement('video');
   video.preload = 'metadata';
@@ -419,8 +450,16 @@ function drawThumbnailWithGrid(file, parts = 1, vparts = 1) {
 
     URL.revokeObjectURL(video.src);
 
-    // Mostrar resultado en pantalla
-    const container = document.getElementById('thumbnailContainer');
+    // Mostrar resultado en pantalla en un contenedor único por archivo
+    const mainContainer = document.getElementById('thumbnailContainer');
+    const uniqueId = 'thumb_' + file.name.replace(/[^a-zA-Z0-9]/g, '') + '_' + file.size;
+    let container = document.getElementById(uniqueId);
+    if (!container) {
+      container = document.createElement('div');
+      container.id = uniqueId;
+      container.style.marginBottom = '16px';
+      mainContainer.appendChild(container);
+    }
     container.innerHTML = '';
     const label = document.createElement('p');
     label.textContent = `Miniatura de: ${file.name}`;
@@ -428,7 +467,8 @@ function drawThumbnailWithGrid(file, parts = 1, vparts = 1) {
     container.appendChild(label);
     container.appendChild(canvas);
   };
-// Actualizar miniatura al cambiar rotación
+// ...existing code...
+// Actualizar miniatura al cambiar rotación (solo una vez, fuera de la función)
 ['rotateNone', 'rotateLeft', 'rotateRight', 'rotate180'].forEach(id => {
   document.getElementById(id).addEventListener('change', () => {
     if (window.currentFiles.length > 0) {
@@ -542,6 +582,8 @@ function validateResolution(widthInput, heightInput) {
             drawThumbnailWithGrid(file, parts, vparts);
           });
         }
+        // <-- AGREGA ESTA LÍNEA PARA ACTUALIZAR LA RESOLUCIÓN SUGERIDA
+        suggestResolution();
       }
     });
 
@@ -803,12 +845,3 @@ vpartsInput.addEventListener('input', () => {
 
 </body>
 </html>
-
-
-
-
-
-
-
-
-
