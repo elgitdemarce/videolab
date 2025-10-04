@@ -79,7 +79,6 @@
 <button type="button" onclick="toggleAdvancedOptions()">Opciones Avanzadas</button>
 
 <div id="advancedOptions" style="display: none; margin-top: 10px;">
-
   <label>Profile H.264:
     <select id="h264Profile">
       <option value="baseline" selected>Baseline</option>
@@ -106,66 +105,15 @@
     <input type="number" id="buffsize" value="8192" min="1024" max="65536" />
   </label>
 
-  <!-- Opciones de rotación dentro de opciones avanzadas -->
-  <div id="rotationOptions" style="margin-top:10px;">
-    <fieldset style="border:1px solid #ccc; padding:10px; border-radius:5px;">
-      <legend>Rotar video (opcional)</legend>
-      <label><input type="radio" name="rotateOption" id="rotateNone" value="none" checked /> No rotar</label>
-      <label><input type="radio" name="rotateOption" id="rotateLeft" value="left" /> Girar 90° a la izquierda</label>
-      <label><input type="radio" name="rotateOption" id="rotateRight" value="right" /> Girar 90° a la derecha</label>
-      <label><input type="radio" name="rotateOption" id="rotate180" value="180" /> Girar 180°</label>
-    </fieldset>
-  </div>
-
+  <fieldset id="rotationOptions" style="margin-top:10px; border:1px solid #ccc; padding:10px; border-radius:5px;">
+    <legend>Rotar video (opcional)</legend>
+    <label><input type="radio" name="rotateOption" id="rotateNone" value="none" checked /> No rotar</label>
+    <label><input type="radio" name="rotateOption" id="rotateLeft" value="left" /> Girar 90° a la izquierda</label>
+    <label><input type="radio" name="rotateOption" id="rotateRight" value="right" /> Girar 90° a la derecha</label>
+    <label><input type="radio" name="rotateOption" id="rotate180" value="180" /> Girar 180°</label>
+  </fieldset>
 </div>
 
-<!-- Ajustar resoluciones de salida -->
-<label>Resolución de salida - Ancho (px):
-  <input type="number" id="outputWidth" value="1920" min="1" max="1920" />
-</label>
-
-<label>Resolución de salida - Alto (px):
-  <input type="number" id="outputHeight" value="1080" min="1" max="1920" />
-</label>
-<!-- Fin ajustes de resolucion -->
-
-  <!-- Opciones de rotación dentro de opciones avanzadas -->
-  <div id="rotationOptions" style="margin-top:10px;">
-    <fieldset style="border:1px solid #ccc; padding:10px; border-radius:5px;">
-      <legend>Rotar video (opcional)</legend>
-      <label><input type="radio" name="rotateOption" id="rotateNone" value="none" checked /> No rotar</label>
-      <label><input type="radio" name="rotateOption" id="rotateLeft" value="left" /> Girar 90° a la izquierda</label>
-      <label><input type="radio" name="rotateOption" id="rotateRight" value="right" /> Girar 90° a la derecha</label>
-      <label><input type="radio" name="rotateOption" id="rotate180" value="180" /> Girar 180°</label>
-    </fieldset>
-  </div>
-  <script>
-  // Permitir deseleccionar los radios (solo uno activo o ninguno, excepto "No rotar" que siempre puede estar activo)
-  document.querySelectorAll('input[name="rotateOption"]').forEach(radio => {
-    radio.addEventListener('mousedown', function(e) {
-      if (this.checked) {
-        this.wasChecked = true;
-      } else {
-        this.wasChecked = false;
-      }
-    });
-    radio.addEventListener('click', function(e) {
-      if (this.wasChecked && this.id !== 'rotateNone') {
-        this.checked = false;
-        this.wasChecked = false;
-        e.preventDefault();
-        document.getElementById('rotateNone').checked = true;
-      }
-      // Desmarcar los otros
-      document.querySelectorAll('input[name="rotateOption"]').forEach(r => {
-        if (r !== this) r.checked = false;
-      });
-    });
-  });
-  </script>
-
-
-<!-- SECCIÓN MEDIAINFO: Mover arriba de Preview a Exportar -->
 <section id="mediainfo-section">
   <h4 style="color:rgb(85, 83, 78);">Valores previos de archivo(s) seleccionados(s):</h4>
   <button id="analyzeMediaInfoBtn" type="button">Ver valores previos</button>
