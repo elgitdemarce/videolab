@@ -672,7 +672,8 @@ async function processFiles() {
             '-b:v', `${bitrate}k`,
             '-r', fps.toString(),
             '-bufsize', `${buffsize}k`,
-            '-movflags', 'faststart' // <-- Esta línea soluciona el problema de miniaturas
+            '-movflags', 'faststart', // <-- Esta línea soluciona el problema de miniaturas
+            '-force_key_frames', 'expr:gte(t,n_forced*1)' // <-- Fuerza keyframes cada 1 segundo
           ];
 
           if (!keepAudio) {
@@ -802,6 +803,7 @@ vpartsInput.addEventListener('input', () => {
 
 </body>
 </html>
+
 
 
 
