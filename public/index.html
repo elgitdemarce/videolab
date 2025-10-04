@@ -376,7 +376,12 @@ function drawThumbnailWithGrid(file, parts = 1, vparts = 1) {
 
   // Actualizar currentFiles al seleccionar archivos con el input
   fileInput.addEventListener('change', () => {
-      window.currentFiles = Array.from(fileInput.files);
+      // Solo aceptar archivos .mp4
+      const selectedFiles = Array.from(fileInput.files).filter(f => f.name.toLowerCase().endsWith('.mp4'));
+      if (selectedFiles.length !== fileInput.files.length) {
+        alert('Solo se permiten archivos de video con extensión .mp4.');
+      }
+      window.currentFiles = selectedFiles;
       if (window.currentFiles.length > 0) {
         statusDiv.textContent = `${window.currentFiles.length} archivo(s) listo(s) para procesar: ${window.currentFiles.map(f => f.name).join(', ')}`;
         const parts = parseInt(partsInput.value, 10) || 1;
@@ -440,15 +445,16 @@ function validateResolution(widthInput, heightInput) {
       dropZone.classList.remove('dragover');
 
       if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-        const droppedFiles = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('video/'));
+        // Solo aceptar archivos .mp4
+        const droppedFiles = Array.from(e.dataTransfer.files).filter(f => f.name.toLowerCase().endsWith('.mp4'));
         if (droppedFiles.length === 0) {
-          alert('Solo se permiten archivos de video.');
+          alert('Solo se permiten archivos de video con extensión .mp4.');
           return;
         }
         // Limpiar el input file para evitar confusión visual
         fileInput.value = '';
-  // Limpiar solo las miniaturas previas
-  document.getElementById('thumbnailContainer').innerHTML = '';
+        // Limpiar solo las miniaturas previas
+        document.getElementById('thumbnailContainer').innerHTML = '';
         // window.currentFiles debe ser SIEMPRE un array real de File
         window.currentFiles = droppedFiles;
         statusDiv.textContent = `${window.currentFiles.length} archivo(s) listo(s) para procesar: ${window.currentFiles.map(f => f.name).join(', ')}`;
