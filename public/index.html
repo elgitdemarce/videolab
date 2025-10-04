@@ -118,15 +118,18 @@
 </label>
 <!-- Fin ajustes de resolucion -->
 
-  <!-- Opciones de rotación -->
-  <fieldset style="margin-top:10px; border:1px solid #ccc; padding:10px; border-radius:5px;">
-    <legend>Rotar video (opcional)</legend>
-    <label><input type="radio" name="rotateOption" id="rotateLeft" value="left" /> Girar 90° a la izquierda</label>
-    <label><input type="radio" name="rotateOption" id="rotateRight" value="right" /> Girar 90° a la derecha</label>
-    <label><input type="radio" name="rotateOption" id="rotate180" value="180" /> Girar 180°</label>
-  </fieldset>
+  <!-- Opciones de rotación dentro de opciones avanzadas -->
+  <div id="rotationOptions" style="margin-top:10px;">
+    <fieldset style="border:1px solid #ccc; padding:10px; border-radius:5px;">
+      <legend>Rotar video (opcional)</legend>
+      <label><input type="radio" name="rotateOption" id="rotateNone" value="none" checked /> No rotar</label>
+      <label><input type="radio" name="rotateOption" id="rotateLeft" value="left" /> Girar 90° a la izquierda</label>
+      <label><input type="radio" name="rotateOption" id="rotateRight" value="right" /> Girar 90° a la derecha</label>
+      <label><input type="radio" name="rotateOption" id="rotate180" value="180" /> Girar 180°</label>
+    </fieldset>
+  </div>
   <script>
-  // Permitir deseleccionar los radios (solo uno activo o ninguno)
+  // Permitir deseleccionar los radios (solo uno activo o ninguno, excepto "No rotar" que siempre puede estar activo)
   document.querySelectorAll('input[name="rotateOption"]').forEach(radio => {
     radio.addEventListener('mousedown', function(e) {
       if (this.checked) {
@@ -136,10 +139,11 @@
       }
     });
     radio.addEventListener('click', function(e) {
-      if (this.wasChecked) {
+      if (this.wasChecked && this.id !== 'rotateNone') {
         this.checked = false;
         this.wasChecked = false;
         e.preventDefault();
+        document.getElementById('rotateNone').checked = true;
       }
       // Desmarcar los otros
       document.querySelectorAll('input[name="rotateOption"]').forEach(r => {
@@ -347,6 +351,7 @@ function drawThumbnailWithGrid(file, parts = 1, vparts = 1) {
 
   video.onloadeddata = () => {
     // Obtener rotación seleccionada
+    const rotateNone = document.getElementById('rotateNone').checked;
     const rotateLeft = document.getElementById('rotateLeft').checked;
     const rotateRight = document.getElementById('rotateRight').checked;
     const rotate180 = document.getElementById('rotate180').checked;
@@ -421,6 +426,7 @@ function drawThumbnailWithGrid(file, parts = 1, vparts = 1) {
         drawW, drawH
       );
     } else {
+      // No rotar
       ctx.drawImage(
         video,
         0, 0, videoW, videoH,
@@ -464,7 +470,7 @@ function drawThumbnailWithGrid(file, parts = 1, vparts = 1) {
     container.appendChild(canvas);
   };
 // Actualizar miniatura al cambiar rotación
-['rotateLeft', 'rotateRight', 'rotate180'].forEach(id => {
+['rotateNone', 'rotateLeft', 'rotateRight', 'rotate180'].forEach(id => {
   document.getElementById(id).addEventListener('change', () => {
     if (window.currentFiles.length > 0) {
       document.getElementById('thumbnailContainer').innerHTML = '';
@@ -675,6 +681,7 @@ async function processFiles() {
 
           // Filtro de rotación
           let rotateFilter = '';
+          const rotateNone = document.getElementById('rotateNone').checked;
           const rotateLeft = document.getElementById('rotateLeft').checked;
           const rotateRight = document.getElementById('rotateRight').checked;
           const rotate180 = document.getElementById('rotate180').checked;
@@ -688,7 +695,7 @@ async function processFiles() {
 
           // Construir filtro complejo: crop -> rotación (si aplica) -> scale
           let filterComplex = cropFilter;
-          if (rotateFilter) {
+          if (!rotateNone && rotateFilter) {
             filterComplex += ',' + rotateFilter;
           }
           filterComplex += ',' + scaleFilter;
