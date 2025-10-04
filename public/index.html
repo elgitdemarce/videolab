@@ -314,34 +314,47 @@ function drawThumbnailWithGrid(file, parts = 1, vparts = 1) {
   video.preload = 'metadata';
   video.src = URL.createObjectURL(file);
   video.muted = true;
+  video.currentTime = 3; // Tomar miniatura en el segundo 3
 
-  video.onloadedmetadata = () => {
-    // Si el video dura menos de 3 segundos, tomar el primer frame
-    const thumbTime = video.duration < 3 ? 0 : 3;
-    video.currentTime = thumbTime;
-  };
-
-  video.onseeked = () => {
+  video.onloadeddata = () => {
     // Obtener rotación seleccionada
     const rotateNone = document.getElementById('rotateNone').checked;
     const rotateLeft = document.getElementById('rotateLeft').checked;
     const rotateRight = document.getElementById('rotateRight').checked;
     const rotate180 = document.getElementById('rotate180').checked;
 
+    // Dimensiones del canvas (fijas)
     let canvasWidth = 480;
     let canvasHeight = 270;
     let videoW = video.videoWidth;
     let videoH = video.videoHeight;
 
+    // Si hay rotación 90°, intercambiar ancho y alto del video para el cálculo de escala
     let displayW = videoW;
     let displayH = videoH;
-    if (rotateLeft || rotateRight) {
+    let rotated = false;
+    let rotation = 0;
+    if (rotateLeft) {
+      rotated = true;
+      rotation = -90;
       [displayW, displayH] = [videoH, videoW];
+    } else if (rotateRight) {
+      rotated = true;
+      rotation = 90;
+      [displayW, displayH] = [videoH, videoW];
+    } else if (rotate180) {
+      rotated = false;
+      rotation = 180;
     }
 
+    // Calcular escala para que el video (rotado) ocupe todo el canvas sin deformarse
     let scale = Math.min(canvasWidth / displayW, canvasHeight / displayH);
+
+    // Calcular tamaño final del video en el canvas
     let drawW = displayW * scale;
     let drawH = displayH * scale;
+
+    // Calcular offset para centrar
     let offsetX = (canvasWidth - drawW) / 2;
     let offsetY = (canvasHeight - drawH) / 2;
 
@@ -351,27 +364,51 @@ function drawThumbnailWithGrid(file, parts = 1, vparts = 1) {
     canvas.height = canvasHeight;
 
     ctx.save();
+    // Aplicar rotación y dibujar el video centrado
     if (rotateLeft) {
       ctx.translate(0, canvasHeight);
       ctx.rotate(-Math.PI / 2);
-      ctx.drawImage(video, 0, 0, videoW, videoH, offsetY, offsetX, drawH, drawW);
+      ctx.drawImage(
+        video,
+        0, 0, videoW, videoH,
+        offsetY, offsetX,
+        drawH, drawW
+      );
     } else if (rotateRight) {
       ctx.translate(canvasWidth, 0);
       ctx.rotate(Math.PI / 2);
-      ctx.drawImage(video, 0, 0, videoW, videoH, offsetY, offsetX, drawH, drawW);
+      ctx.drawImage(
+        video,
+        0, 0, videoW, videoH,
+        offsetY, offsetX,
+        drawH, drawW
+      );
     } else if (rotate180) {
       ctx.translate(canvasWidth, canvasHeight);
       ctx.rotate(Math.PI);
-      ctx.drawImage(video, 0, 0, videoW, videoH, offsetX, offsetY, drawW, drawH);
+      ctx.drawImage(
+        video,
+        0, 0, videoW, videoH,
+        offsetX, offsetY,
+        drawW, drawH
+      );
     } else {
-      ctx.drawImage(video, 0, 0, videoW, videoH, offsetX, offsetY, drawW, drawH);
+      // No rotar
+      ctx.drawImage(
+        video,
+        0, 0, videoW, videoH,
+        offsetX, offsetY,
+        drawW, drawH
+      );
     }
     ctx.restore();
 
+    // Dibujar grilla (ajustada a la rotación)
     ctx.strokeStyle = 'red';
     ctx.lineWidth = 1.5;
     const partWidth = canvas.width / parts;
     const partHeight = canvas.height / vparts;
+    // Líneas verticales
     for (let i = 1; i < parts; i++) {
       const x = i * partWidth;
       ctx.beginPath();
@@ -379,6 +416,7 @@ function drawThumbnailWithGrid(file, parts = 1, vparts = 1) {
       ctx.lineTo(x, canvas.height);
       ctx.stroke();
     }
+    // Líneas horizontales
     for (let j = 1; j < vparts; j++) {
       const y = j * partHeight;
       ctx.beginPath();
@@ -389,6 +427,7 @@ function drawThumbnailWithGrid(file, parts = 1, vparts = 1) {
 
     URL.revokeObjectURL(video.src);
 
+    // Mostrar resultado en pantalla
     const container = document.getElementById('thumbnailContainer');
     container.innerHTML = '';
     const label = document.createElement('p');
@@ -397,20 +436,19 @@ function drawThumbnailWithGrid(file, parts = 1, vparts = 1) {
     container.appendChild(label);
     container.appendChild(canvas);
   };
-
-  // Actualizar miniatura al cambiar rotación
-  ['rotateNone', 'rotateLeft', 'rotateRight', 'rotate180'].forEach(id => {
-    document.getElementById(id).addEventListener('change', () => {
-      if (window.currentFiles.length > 0) {
-        document.getElementById('thumbnailContainer').innerHTML = '';
-        const parts = parseInt(partsInput.value, 10) || 1;
-        const vparts = parseInt(vpartsInput.value, 10) || 1;
-        window.currentFiles.forEach(file => {
-          drawThumbnailWithGrid(file, parts, vparts);
-        });
-      }
-    });
+// Actualizar miniatura al cambiar rotación
+['rotateNone', 'rotateLeft', 'rotateRight', 'rotate180'].forEach(id => {
+  document.getElementById(id).addEventListener('change', () => {
+    if (window.currentFiles.length > 0) {
+      document.getElementById('thumbnailContainer').innerHTML = '';
+      const parts = parseInt(partsInput.value, 10) || 1;
+      const vparts = parseInt(vpartsInput.value, 10) || 1;
+      window.currentFiles.forEach(file => {
+        drawThumbnailWithGrid(file, parts, vparts);
+      });
+    }
   });
+});
 }
 
 
@@ -771,3 +809,4 @@ vpartsInput.addEventListener('input', () => {
 
 </body>
 </html>
+
