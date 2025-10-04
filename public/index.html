@@ -53,7 +53,7 @@
 <div id="dropZone">Ó directamente arrastra y suelta tus archivos de video aquí para agregarlos</div>
 
 <label>Bitrate (kbps):
-  <input type="number" id="bitrate" value="2500" min="100" max="10000" />
+  <input type="number" id="bitrate" value="2000" min="100" max="10000" />
 </label>
 
 
@@ -568,7 +568,7 @@ async function processFiles() {
             '-i', 'input.mp4',
             '-filter:v', filterComplex,//Cambiar cropFilter
             '-c:v', 'libx264',
-            '-preset', 'faster', 
+            '-preset', 'faster',
             '-profile:v', profile,
             '-level', level,
             '-b:v', `${bitrate}k`,
@@ -601,13 +601,13 @@ async function processFiles() {
 
           const dotIndex = file.name.lastIndexOf('.');
           const baseName = file.name.substring(0, dotIndex);
-          const extension = file.name.substring(dotIndex);
+          const extension = '.mp4';
           
           if (parts === 1 && vparts === 1) {
             a.download = `${baseName}_Reencoded${extension}`;
             a.textContent = `Descargar ${baseName}_Reencoded${extension}`;
           } else {
-            a.download = `Reencoded_parte_H${i + 1}_V${j + 1}_${file.name}`;
+            a.download = `Reencoded_parte_H${i + 1}_V${j + 1}_${baseName}_Reencoded${extension}`;
             a.textContent = `Descargar Parte Horizontal ${i + 1} Vertical ${j + 1} de ${baseName}_Reencoded${extension}`;
           }
 
@@ -703,8 +703,3 @@ vpartsInput.addEventListener('input', () => {
 
 </body>
 </html>
-
-
-
-
-
