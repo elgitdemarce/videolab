@@ -336,11 +336,11 @@ function drawThumbnailWithGrid(file, parts = 1, vparts = 1) {
     let rotation = 0;
     if (rotateLeft) {
       rotated = true;
-      rotation = -90;
+      rotation = 90;
       [displayW, displayH] = [videoH, videoW];
     } else if (rotateRight) {
       rotated = true;
-      rotation = 90;
+      rotation = -90;
       [displayW, displayH] = [videoH, videoW];
     } else if (rotate180) {
       rotated = false;
@@ -809,6 +809,7 @@ vpartsInput.addEventListener('input', () => {
 
 </body>
 </html>
+
 
 
 
