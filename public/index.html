@@ -346,43 +346,67 @@ function drawThumbnailWithGrid(file, parts = 1, vparts = 1) {
   video.currentTime = 3; // Tomar miniatura en el segundo 3
 
   video.onloadeddata = () => {
-    // Crear un canvas independiente por video
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
+    // Obtener rotación seleccionada
+    const rotateLeft = document.getElementById('rotateLeft').checked;
+    const rotateRight = document.getElementById('rotateRight').checked;
+    const rotate180 = document.getElementById('rotate180').checked;
 
     // Definir dimensiones deseadas del canvas
-    canvas.width = 480;
-    canvas.height = 270;
+    let canvasWidth = 480;
+    let canvasHeight = 270;
+    if (rotateLeft || rotateRight) {
+      [canvasWidth, canvasHeight] = [canvasHeight, canvasWidth];
+    }
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
 
-    const scale = Math.min(canvas.width / video.videoWidth, canvas.height / video.videoHeight);
-    const drawWidth = video.videoWidth * scale;
-    const drawHeight = video.videoHeight * scale;
+    // Calcular escala para ajustar el video al canvas
+    const scale = Math.min(canvasWidth / video.videoWidth, canvasHeight / video.videoHeight);
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(video, 0, 0, drawWidth, drawHeight);
+    ctx.save();
+    // Aplicar rotación al contexto
+    if (rotateLeft) {
+      ctx.translate(0, canvasHeight);
+      ctx.rotate(-Math.PI / 2);
+    } else if (rotateRight) {
+      ctx.translate(canvasWidth, 0);
+      ctx.rotate(Math.PI / 2);
+    } else if (rotate180) {
+      ctx.translate(canvasWidth, canvasHeight);
+      ctx.rotate(Math.PI);
+    }
 
-    // Dibujar grilla
+    ctx.drawImage(
+      video,
+      0, 0,
+      video.videoWidth, video.videoHeight,
+      0, 0,
+      video.videoWidth * scale,
+      video.videoHeight * scale
+    );
+    ctx.restore();
+
+    // Dibujar grilla (ajustada a la rotación)
     ctx.strokeStyle = 'red';
     ctx.lineWidth = 1.5;
-
-    const partWidth = drawWidth / parts;
-    const partHeight = drawHeight / vparts;
-
+    const partWidth = canvas.width / parts;
+    const partHeight = canvas.height / vparts;
     // Líneas verticales
     for (let i = 1; i < parts; i++) {
       const x = i * partWidth;
       ctx.beginPath();
       ctx.moveTo(x, 0);
-      ctx.lineTo(x, drawHeight);
+      ctx.lineTo(x, canvas.height);
       ctx.stroke();
     }
-
     // Líneas horizontales
     for (let j = 1; j < vparts; j++) {
       const y = j * partHeight;
       ctx.beginPath();
       ctx.moveTo(0, y);
-      ctx.lineTo(drawWidth, y);
+      ctx.lineTo(canvas.width, y);
       ctx.stroke();
     }
 
@@ -396,6 +420,19 @@ function drawThumbnailWithGrid(file, parts = 1, vparts = 1) {
     container.appendChild(label);
     container.appendChild(canvas);
   };
+// Actualizar miniatura al cambiar rotación
+['rotateLeft', 'rotateRight', 'rotate180'].forEach(id => {
+  document.getElementById(id).addEventListener('change', () => {
+    if (window.currentFiles.length > 0) {
+      document.getElementById('thumbnailContainer').innerHTML = '';
+      const parts = parseInt(partsInput.value, 10) || 1;
+      const vparts = parseInt(vpartsInput.value, 10) || 1;
+      window.currentFiles.forEach(file => {
+        drawThumbnailWithGrid(file, parts, vparts);
+      });
+    }
+  });
+});
 }
 
 
