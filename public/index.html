@@ -507,6 +507,7 @@ function drawThumbnailWithGrid(file, parts = 1, vparts = 1) {
         window.currentFiles.forEach(file => {
           drawThumbnailWithGrid(file, parts, vparts);
         });
+        suggestResolution();
       }
     });
 
@@ -845,4 +846,5 @@ vpartsInput.addEventListener('input', () => {
 
 </body>
 </html>
+
 
