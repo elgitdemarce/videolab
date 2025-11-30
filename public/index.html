@@ -705,6 +705,17 @@ async function processFiles() {
           const profile = profileSelect.value;
           const level = document.getElementById('h264Level').value;
 
+          // Variables desde tus inputs:
+          const finalWidth = parseInt(document.getElementById("outputWidth").value, 10);
+          const finalHeight = parseInt(document.getElementById("outputHeight").value, 10);
+
+         // Asegura que el video no fuerce el aspect ratio
+         const scaleFilter = `scale=${finalWidth}:${finalHeight}:force_original_aspect_ratio=decrease,pad=${finalWidth}:${finalHeight}:(ow-iw)/2:(oh-ih)/2:black`;
+
+         // Integrás todo en tu filterComplex existente
+         filterComplex = `${filterComplex},${scaleFilter}`;
+
+
           let args = [
             '-i', 'input.mp4',
             '-filter:v', filterComplex,//Cambiar cropFilter
@@ -846,5 +857,6 @@ vpartsInput.addEventListener('input', () => {
 
 </body>
 </html>
+
 
 
