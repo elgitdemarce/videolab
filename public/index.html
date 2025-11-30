@@ -710,6 +710,7 @@ async function processFiles() {
           let args = [
             '-i', 'input.mp4',
             '-filter:v', filterComplex,//Cambiar cropFilter
+            '-aspect', '14:9', 
             '-c:v', 'libx264',
             '-preset', 'faster',
             '-profile:v', profile,
@@ -848,6 +849,7 @@ vpartsInput.addEventListener('input', () => {
 
 </body>
 </html>
+
 
 
 
