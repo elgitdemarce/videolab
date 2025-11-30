@@ -678,7 +678,11 @@ async function processFiles() {
           const outputWidth = validatedRes.width;
           const outputHeight = validatedRes.height;
           
-          const scaleFilter = `scale=${outputWidth}:${outputHeight}`;
+         // ⛔ YA NO USAMOS: scale=width:height (ese deforma)
+         // ⭕ AHORA USAMOS SCALE + PAD ANTI-STRETCHING
+          const scaleFilter =
+            `scale=${outputWidth}:${outputHeight}:force_original_aspect_ratio=decrease,` +
+            `pad=${outputWidth}:${outputHeight}:(ow-iw)/2:(oh-ih)/2:black`;
           const cropFilter = `crop=${cropWidth}:${currentCropHeight}:${offsetX}:${offsetY}`;
 
           // Filtro de rotación
@@ -704,16 +708,6 @@ async function processFiles() {
 
           const profile = profileSelect.value;
           const level = document.getElementById('h264Level').value;
-
-          // Variables desde tus inputs:
-          const finalWidth = parseInt(document.getElementById("outputWidth").value, 10);
-          const finalHeight = parseInt(document.getElementById("outputHeight").value, 10);
-
-         // Asegura que el video no fuerce el aspect ratio
-         const scaleFilter = `scale=${finalWidth}:${finalHeight}:force_original_aspect_ratio=decrease,pad=${finalWidth}:${finalHeight}:(ow-iw)/2:(oh-ih)/2:black`;
-
-         // Integrás todo en tu filterComplex existente
-         filterComplex = `${filterComplex},${scaleFilter}`;
 
 
           let args = [
@@ -857,6 +851,7 @@ vpartsInput.addEventListener('input', () => {
 
 </body>
 </html>
+
 
 
 
