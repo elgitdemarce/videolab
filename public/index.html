@@ -678,11 +678,8 @@ async function processFiles() {
           const outputWidth = validatedRes.width;
           const outputHeight = validatedRes.height;
           
-         // ⛔ YA NO USAMOS: scale=width:height (ese deforma)
-         // ⭕ AHORA USAMOS SCALE + PAD ANTI-STRETCHING
-          const scaleFilter =
-            `scale=${outputWidth}:${outputHeight}:force_original_aspect_ratio=decrease,` +
-            `pad=${outputWidth}:${outputHeight}:(ow-iw)/2:(oh-ih)/2:black`;
+
+          const scaleFilter = `scale=${outputWidth}:${outputHeight}:force_original_aspect_ratio=disable`;
           const cropFilter = `crop=${cropWidth}:${currentCropHeight}:${offsetX}:${offsetY}`;
 
           // Filtro de rotación
@@ -851,6 +848,7 @@ vpartsInput.addEventListener('input', () => {
 
 </body>
 </html>
+
 
 
 
