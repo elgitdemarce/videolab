@@ -712,6 +712,7 @@ async function processFiles() {
             '-filter:v', filterComplex,//Cambiar cropFilter
             '-c:v', 'libx264',
             '-preset', 'faster',
+            '-vf', 'format=yuv420p',
             '-profile:v', profile,
             '-level', level,
             '-b:v', `${bitrate}k`,
@@ -848,6 +849,7 @@ vpartsInput.addEventListener('input', () => {
 
 </body>
 </html>
+
 
 
 
