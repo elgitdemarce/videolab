@@ -700,8 +700,9 @@ async function processFiles() {
 
           // Orden correcto: crop -> rotate -> scale
           let filterComplex = cropFilter;
+          
           if (!rotateNone && rotateFilter) {
-            filterComplex += ',' + rotateFilter;
+            filterComplex += `,${rotateFilter}`;
           }
 
           filterComplex += `,${scaleFilter}`;
@@ -851,6 +852,7 @@ vpartsInput.addEventListener('input', () => {
 
 </body>
 </html>
+
 
 
 
