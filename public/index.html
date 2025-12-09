@@ -679,8 +679,10 @@ async function processFiles() {
           const outputHeight = validatedRes.height;
           
 
-          const scaleFilter = `scale=${cropWidth}:${cropHeight}:force_original_aspect_ratio=disable`;
           const cropFilter = `crop=${cropWidth}:${currentCropHeight}:${offsetX}:${offsetY}`;
+          const scaleFilter = `scale=${cropWidth}:${cropHeight}:force_original_aspect_ratio=disable`;
+
+          let filterComplex = cropFilter;
 
           // Filtro de rotación
           let rotateFilter = '';
@@ -696,12 +698,13 @@ async function processFiles() {
             rotateFilter = 'transpose=2,transpose=2';
           }
 
-          // Construir filtro complejo: crop -> rotación (si aplica) -> scale
-          let filterComplex = scaleFilter + ',' + cropFilter;
+          // Orden correcto: crop -> rotate -> scale
+          let filterComplex = cropFilter;
           if (!rotateNone && rotateFilter) {
             filterComplex += ',' + rotateFilter;
           }
-          
+
+          filterComplex += `,${scaleFilter}`;
 
           const profile = profileSelect.value;
           const level = document.getElementById('h264Level').value;
@@ -709,10 +712,9 @@ async function processFiles() {
 
           let args = [
             '-i', 'input.mp4',
-            '-filter:v', filterComplex,//Cambiar cropFilter
             '-c:v', 'libx264',
             '-preset', 'faster',
-            '-vf', 'format=yuv420p',
+            '-vf', `${filterComplex},format=yuv420p`,
             '-profile:v', profile,
             '-level', level,
             '-b:v', `${bitrate}k`,
@@ -849,6 +851,7 @@ vpartsInput.addEventListener('input', () => {
 
 </body>
 </html>
+
 
 
 
