@@ -679,7 +679,7 @@ async function processFiles() {
           const outputHeight = validatedRes.height;
           
 
-          const scaleFilter = `scale=${outputWidth}:${outputHeight};
+          const scaleFilter = `scale=${outputWidth}:${outputHeight}`;
           const cropFilter = `crop=${cropWidth}:${currentCropHeight}:${offsetX}:${offsetY}`;
 
           // Filtro de rotación
@@ -849,6 +849,7 @@ vpartsInput.addEventListener('input', () => {
 
 </body>
 </html>
+
 
 
 
