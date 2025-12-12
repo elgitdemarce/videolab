@@ -680,7 +680,7 @@ async function processFiles() {
           
 
           const cropFilter = `crop=${cropWidth}:${currentCropHeight}:${offsetX}:${offsetY}`;
-          const scaleFilter = `scale=${cropWidth}:${cropHeight}:force_original_aspect_ratio=disable`;
+          const scaleFilter = `scale=${outputWidth}:${outputHeight}:force_original_aspect_ratio=disable`;
 
 
 
@@ -852,6 +852,7 @@ vpartsInput.addEventListener('input', () => {
 
 </body>
 </html>
+
 
 
 
