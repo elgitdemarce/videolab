@@ -719,9 +719,14 @@ async function processFiles() {
             '-profile:v', profile,
             '-level', level,
             '-b:v', `${bitrate}k`,
+            '-maxrate', `${bitrate}k`, // Evita picos de bitrat
             '-r', fps.toString(),
             '-bufsize', `${buffsize}k`,
+            '-r', fps.toString(),
+            '-g', fps.toString(),       // <--- FUERZA GOP al número de FPS (Keyframe cada 1 seg)
+            '-keyint_min', fps.toString(), // <--- Mínimo Keyframe cada 1 seg
             '-movflags', 'faststart', // <-- Esta línea soluciona el problema de miniaturas
+            '-sc_threshold', '0',       // <--- Desactiva detección de cambio de escena (evita keyframes aleatorios)
             '-force_key_frames', 'expr:gte(t,n_forced*1)' // <-- Fuerza keyframes cada 1 segundo
           ];
 
@@ -852,6 +857,7 @@ vpartsInput.addEventListener('input', () => {
 
 </body>
 </html>
+
 
 
 
